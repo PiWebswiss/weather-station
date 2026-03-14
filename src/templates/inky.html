@@ -7,10 +7,12 @@
     <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='styles/main.css') }}">
     <script>
         (function() {
-            const theme = localStorage.getItem('inkypi-theme') || 
-                         (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            const stored = localStorage.getItem('inkypi-theme');
+            const theme = stored || 'light';
             if (theme === 'dark') {
                 document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.removeAttribute('data-theme');
             }
         })();
         let lastModified = null;
