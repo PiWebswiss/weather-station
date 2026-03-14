@@ -1,12 +1,16 @@
 from plugins.base_plugin.base_plugin import BasePlugin
 from PIL import Image
 import os
+import csv
+import json
 import requests
 import logging
 from datetime import datetime, timedelta, timezone, date
 from astral import moon
+from astral import Observer
+from astral.sun import sun
 import pytz
-from io import BytesIO
+from io import BytesIO, StringIO
 import math
 
 logger = logging.getLogger(__name__)
@@ -60,6 +64,41 @@ OPEN_METEO_UNIT_PARAMS = {
     "imperial": "temperature_unit=fahrenheit&wind_speed_unit=mph&precipitation_unit=inch"
 }
 
+IP_GEO_URL = "https://ipapi.co/json/"
+
+METEOSWISS_STAC_BASE = "https://data.geo.admin.ch/api/stac/v1/collections"
+METEOSWISS_LOCAL_FORECAST_COLLECTION = "ch.meteoschweiz.ogd-local-forecasting"
+METEOSWISS_SMN_COLLECTION = "ch.meteoschweiz.ogd-smn"
+
+METEOSWISS_LOCAL_FORECAST_META_POINT_URL = "https://data.geo.admin.ch/ch.meteoschweiz.ogd-local-forecasting/ogd-local-forecasting_meta_point.csv"
+METEOSWISS_SMN_META_STATIONS_URL = "https://data.geo.admin.ch/ch.meteoschweiz.ogd-smn/ogd-smn_meta_stations.csv"
+
+METEOSWISS_CACHE_TTL_SECONDS = 2 * 60 * 60
+
+# MeteoSwiss icon code -> internal icon name (mapped from official symbol descriptions)
+METEOSWISS_ICON_MAP = {
+    1: '01d', 2: '022d', 3: '02d', 4: '04d', 5: '04d', 6: '10d', 7: '13d', 8: '13d',
+    9: '10d', 10: '13d', 11: '13d', 12: '11d', 13: '11d', 14: '10d', 15: '13d',
+    16: '13d', 17: '10d', 18: '13d', 19: '13d', 20: '10d', 21: '13d', 22: '13d',
+    23: '11d', 24: '11d', 25: '11d', 26: '04d', 27: '04d', 28: '50d', 29: '10d',
+    30: '13d', 31: '13d', 32: '10d', 33: '10d', 34: '13d', 35: '04d', 36: '11d',
+    37: '11d', 38: '11d', 39: '11d', 40: '11d', 41: '11d', 42: '11d',
+    101: '01d', 102: '04d', 103: '04d', 104: '04d', 105: '04d', 106: '10d', 107: '13d',
+    108: '13d', 109: '10d', 110: '13d', 111: '13d', 112: '11d', 113: '11d',
+    114: '10d', 115: '13d', 116: '13d', 117: '10d', 118: '13d', 119: '13d',
+    120: '10d', 121: '13d', 122: '13d', 123: '11d', 124: '11d', 125: '11d',
+    126: '04d', 127: '04d', 128: '50d', 129: '10d', 130: '13d', 131: '13d',
+    132: '10d', 133: '13d', 134: '13d', 135: '04d', 136: '11d', 137: '11d',
+    138: '11d', 139: '11d', 140: '11d', 141: '11d', 142: '11d'
+}
+
+METEOSWISS_ICON_NIGHT_MAP = {
+    "01d": "01n",
+    "02d": "02n",
+    "022d": "022n",
+    "10d": "10n"
+}
+
 class Weather(BasePlugin):
     def generate_settings_template(self):
         template_params = super().generate_settings_template()
@@ -72,8 +111,17 @@ class Weather(BasePlugin):
         return template_params
 
     def generate_image(self, settings, device_config):
-        lat = float(settings.get('latitude'))
-        long = float(settings.get('longitude'))
+        auto_location = str(settings.get('autoLocation', 'false')).lower() == 'true'
+        lat = self._safe_float(settings.get('latitude'))
+        long = self._safe_float(settings.get('longitude'))
+        geo = None
+
+        if auto_location:
+            geo = self.get_ip_geolocation()
+            if geo:
+                lat = geo.get("lat")
+                long = geo.get("lon")
+
         if not lat or not long:
             raise RuntimeError("Latitude and Longitude are required.")
 
@@ -109,6 +157,17 @@ class Weather(BasePlugin):
                 weather_data = self.get_open_meteo_data(lat, long, units, forecast_days + 1)
                 aqi_data = self.get_open_meteo_air_quality(lat, long)
                 template_params = self.parse_open_meteo_data(weather_data, aqi_data, tz, units, time_format, lat)
+            elif weather_provider == "MeteoSwiss":
+                forecast_days = int(settings.get('forecastDays', 7))
+                tz_name = timezone
+                if settings.get('weatherTimeZone', 'locationTimeZone') == 'locationTimeZone' and geo and geo.get('timezone'):
+                    tz_name = geo.get('timezone')
+                tz = pytz.timezone(tz_name)
+
+                ms_data = self.get_meteoswiss_data(lat, long, tz, forecast_days)
+                template_params = self.parse_meteoswiss_data(ms_data, tz, units, time_format, lat, long)
+                if settings.get('titleSelection', 'location') == 'location':
+                    title = ms_data.get("location_name", "") or title
             else:
                 raise RuntimeError(f"Unknown weather provider: {weather_provider}")
 
@@ -771,6 +830,484 @@ class Weather(BasePlugin):
         
         return response.json()
     
+    def _safe_float(self, value):
+        try:
+            return float(value)
+        except Exception:
+            return None
+
+    def get_ip_geolocation(self):
+        try:
+            response = requests.get(IP_GEO_URL, timeout=10)
+            if not 200 <= response.status_code < 300:
+                logger.warning(f"IP geolocation failed: {response.status_code}")
+                return None
+            data = response.json()
+            lat = data.get("latitude") or data.get("lat")
+            lon = data.get("longitude") or data.get("lon")
+            if lat is None or lon is None:
+                return None
+            return {
+                "lat": float(lat),
+                "lon": float(lon),
+                "city": data.get("city"),
+                "region": data.get("region"),
+                "country": data.get("country_name") or data.get("country"),
+                "timezone": data.get("timezone")
+            }
+        except Exception as e:
+            logger.warning(f"IP geolocation exception: {e}")
+            return None
+
+    def _meteoswiss_cache_path(self):
+        cache_dir = os.path.join(os.path.dirname(__file__), "cache")
+        os.makedirs(cache_dir, exist_ok=True)
+        return os.path.join(cache_dir, "meteoswiss_cache.json")
+
+    def _load_meteoswiss_cache(self):
+        try:
+            path = self._meteoswiss_cache_path()
+            if not os.path.exists(path):
+                return None
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            ts = data.get("generated_at")
+            if ts:
+                age = datetime.utcnow() - datetime.fromisoformat(ts)
+                if age.total_seconds() > METEOSWISS_CACHE_TTL_SECONDS:
+                    return None
+            return data
+        except Exception:
+            return None
+
+    def _save_meteoswiss_cache(self, payload):
+        try:
+            payload["generated_at"] = datetime.utcnow().isoformat()
+            path = self._meteoswiss_cache_path()
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(payload, f, ensure_ascii=False)
+        except Exception as e:
+            logger.warning(f"Failed to write MeteoSwiss cache: {e}")
+
+    def _haversine_km(self, lat1, lon1, lat2, lon2):
+        r = 6371.0
+        phi1 = math.radians(lat1)
+        phi2 = math.radians(lat2)
+        dphi = math.radians(lat2 - lat1)
+        dlambda = math.radians(lon2 - lon1)
+        a = math.sin(dphi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
+        return 2 * r * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    def _find_nearest_point(self, lat, lon):
+        response = requests.get(METEOSWISS_LOCAL_FORECAST_META_POINT_URL, timeout=30)
+        if not 200 <= response.status_code < 300:
+            raise RuntimeError("Failed to retrieve MeteoSwiss point metadata.")
+        response.encoding = "latin-1"
+        reader = csv.DictReader(StringIO(response.text), delimiter=";")
+        best = None
+        best_dist = None
+        for row in reader:
+            try:
+                p_lat = float(row.get("point_coordinates_wgs84_lat"))
+                p_lon = float(row.get("point_coordinates_wgs84_lon"))
+            except Exception:
+                continue
+            dist = self._haversine_km(lat, lon, p_lat, p_lon)
+            if best_dist is None or dist < best_dist:
+                best_dist = dist
+                best = row
+        if not best:
+            raise RuntimeError("Failed to resolve nearest MeteoSwiss point.")
+        return best
+
+    def _find_nearest_station(self, lat, lon):
+        response = requests.get(METEOSWISS_SMN_META_STATIONS_URL, timeout=30)
+        if not 200 <= response.status_code < 300:
+            raise RuntimeError("Failed to retrieve MeteoSwiss station metadata.")
+        response.encoding = "latin-1"
+        reader = csv.DictReader(StringIO(response.text), delimiter=";")
+        best = None
+        best_dist = None
+        for row in reader:
+            try:
+                s_lat = float(row.get("station_coordinates_wgs84_lat"))
+                s_lon = float(row.get("station_coordinates_wgs84_lon"))
+            except Exception:
+                continue
+            dist = self._haversine_km(lat, lon, s_lat, s_lon)
+            if best_dist is None or dist < best_dist:
+                best_dist = dist
+                best = row
+        return best
+
+    def _get_local_forecast_assets(self):
+        url = f"{METEOSWISS_STAC_BASE}/{METEOSWISS_LOCAL_FORECAST_COLLECTION}/items?limit=1"
+        response = requests.get(url, timeout=30)
+        if not 200 <= response.status_code < 300:
+            raise RuntimeError("Failed to retrieve MeteoSwiss STAC items.")
+        data = response.json()
+        features = data.get("features", [])
+        if not features:
+            raise RuntimeError("No MeteoSwiss STAC items found.")
+        feature = features[0]
+        assets = feature.get("assets", {})
+        item_updated = feature.get("properties", {}).get("updated") or feature.get("properties", {}).get("datetime")
+        return assets, item_updated
+
+    def _get_asset_url(self, assets, param):
+        suffix = f".{param}.csv"
+        for key, asset in assets.items():
+            if key.endswith(suffix):
+                return asset.get("href")
+        return None
+
+    def _parse_local_forecast_param(self, url, point_id, point_type_id, param_name, tz):
+        response = requests.get(url, timeout=60)
+        if not 200 <= response.status_code < 300:
+            raise RuntimeError(f"Failed to retrieve MeteoSwiss parameter {param_name}.")
+        response.encoding = "latin-1"
+        reader = csv.DictReader(StringIO(response.text), delimiter=";")
+        series = []
+        pid = str(point_id)
+        ptid = str(point_type_id)
+        for row in reader:
+            if row.get("point_id") != pid or row.get("point_type_id") != ptid:
+                continue
+            raw_time = row.get("Date")
+            raw_value = row.get(param_name)
+            if not raw_time or raw_value in (None, ""):
+                continue
+            try:
+                dt = datetime.strptime(raw_time, "%Y%m%d%H%M")
+                dt = tz.localize(dt)
+                series.append((dt, float(raw_value)))
+            except Exception:
+                continue
+        return series
+
+    def _get_smn_current(self, station_abbr):
+        if not station_abbr:
+            return {}
+        station = station_abbr.lower()
+        url = f"https://data.geo.admin.ch/ch.meteoschweiz.ogd-smn/{station}/ogd-smn_{station}_h_now.csv"
+        response = requests.get(url, timeout=30)
+        if not 200 <= response.status_code < 300:
+            logger.warning("Failed to retrieve MeteoSwiss station data.")
+            return {}
+        response.encoding = "latin-1"
+        reader = csv.reader(StringIO(response.text), delimiter=";")
+        header = next(reader, None)
+        last_row = None
+        for row in reader:
+            if row and row[0]:
+                last_row = row
+        if not header or not last_row:
+            return {}
+        data = dict(zip(header, last_row))
+        return data
+
+    def _map_meteoswiss_icon(self, symbol_code, is_day=True):
+        try:
+            code = int(symbol_code)
+        except Exception:
+            return self.get_plugin_dir("icons/01d.png")
+        icon = METEOSWISS_ICON_MAP.get(code, "04d")
+        if not is_day:
+            icon = METEOSWISS_ICON_NIGHT_MAP.get(icon, icon)
+        return self.get_plugin_dir(f"icons/{icon}.png")
+
+    def _convert_temperature(self, value_c, units):
+        if value_c is None:
+            return None
+        if units == "imperial":
+            return (value_c * 9 / 5) + 32
+        if units == "standard":
+            return value_c + 273.15
+        return value_c
+
+    def _convert_precip(self, value_mm, units):
+        if value_mm is None:
+            return None
+        if units == "imperial":
+            return value_mm / 25.4
+        return value_mm
+
+    def _convert_wind_speed(self, value_kmh, units):
+        if value_kmh is None:
+            return None
+        if units == "imperial":
+            return value_kmh * 0.621371
+        return value_kmh
+
+    def _get_sun_times(self, lat, lon, day, tz):
+        try:
+            observer = Observer(latitude=lat, longitude=lon)
+            s = sun(observer, date=day, tzinfo=tz)
+            return s.get("sunrise"), s.get("sunset")
+        except Exception:
+            return None, None
+
+    def get_meteoswiss_data(self, lat, lon, tz, forecast_days):
+        point = self._find_nearest_point(lat, lon)
+        point_id = point.get("point_id")
+        point_type_id = point.get("point_type_id")
+        point_name = point.get("point_name")
+        station_abbr = point.get("station_abbr") or ""
+        station_name = None
+        if not station_abbr:
+            station_meta = self._find_nearest_station(lat, lon)
+            if station_meta:
+                station_abbr = station_meta.get("station_abbr") or ""
+                station_name = station_meta.get("station_name")
+
+        assets, item_updated = self._get_local_forecast_assets()
+        cache = self._load_meteoswiss_cache()
+        if cache and cache.get("point_id") == point_id and cache.get("item_updated") == item_updated:
+            return cache.get("data", {})
+
+        temp_url = self._get_asset_url(assets, "tre200h0")
+        precip_url = self._get_asset_url(assets, "rre150h0")
+        prob_url = self._get_asset_url(assets, "rp0003i0")
+        symbol_url = self._get_asset_url(assets, "jww003i0")
+
+        if not all([temp_url, precip_url, prob_url, symbol_url]):
+            raise RuntimeError("Missing MeteoSwiss forecast parameters.")
+
+        temp_series = self._parse_local_forecast_param(temp_url, point_id, point_type_id, "tre200h0", tz)
+        precip_series = self._parse_local_forecast_param(precip_url, point_id, point_type_id, "rre150h0", tz)
+        prob_series = self._parse_local_forecast_param(prob_url, point_id, point_type_id, "rp0003i0", tz)
+        symbol_series = self._parse_local_forecast_param(symbol_url, point_id, point_type_id, "jww003i0", tz)
+
+        temp_map = {dt: val for dt, val in temp_series}
+        precip_map = {dt: val for dt, val in precip_series}
+        prob_map = {dt: val for dt, val in prob_series}
+        symbol_map = {dt: val for dt, val in symbol_series}
+
+        now = datetime.now(tz)
+        hourly = []
+        for dt in sorted(temp_map.keys()):
+            if dt < now:
+                continue
+            hourly.append({
+                "time": dt,
+                "temperature_c": temp_map.get(dt),
+                "precip_mm": precip_map.get(dt),
+                "precip_prob": prob_map.get(dt),
+                "symbol": symbol_map.get(dt)
+            })
+            if len(hourly) >= 24:
+                break
+
+        # Determine current time slot
+        current_slot = None
+        for dt in sorted(temp_map.keys()):
+            if dt <= now:
+                current_slot = dt
+        if current_slot is None and temp_map:
+            current_slot = sorted(temp_map.keys())[0]
+
+        current = {
+            "time": current_slot or now,
+            "temperature_c": temp_map.get(current_slot) if current_slot else None,
+            "precip_mm": precip_map.get(current_slot) if current_slot else None,
+            "precip_prob": prob_map.get(current_slot) if current_slot else None,
+            "symbol": symbol_map.get(current_slot) if current_slot else None
+        }
+
+        # Daily min/max from hourly temps
+        today = now.date()
+        daily_map = {}
+        for dt, temp in temp_series:
+            if dt.date() < today:
+                continue
+            if temp is None:
+                continue
+            day = dt.date()
+            if day not in daily_map:
+                daily_map[day] = {"min": temp, "max": temp}
+            else:
+                daily_map[day]["min"] = min(daily_map[day]["min"], temp)
+                daily_map[day]["max"] = max(daily_map[day]["max"], temp)
+
+        # Daily icon (closest to 12:00)
+        daily_symbol = {}
+        for dt, code in symbol_series:
+            if dt.date() < today:
+                continue
+            day = dt.date()
+            target = datetime(dt.year, dt.month, dt.day, 12, 0, tzinfo=dt.tzinfo)
+            diff = abs((dt - target).total_seconds())
+            if day not in daily_symbol or diff < daily_symbol[day]["diff"]:
+                daily_symbol[day] = {"code": code, "diff": diff}
+
+        daily = []
+        for day in sorted(daily_map.keys()):
+            daily.append({
+                "date": day,
+                "min_c": daily_map[day]["min"],
+                "max_c": daily_map[day]["max"],
+                "symbol": daily_symbol.get(day, {}).get("code")
+            })
+
+        # Enrich with station observations if available
+        station_data = self._get_smn_current(station_abbr)
+        if station_data:
+            current["temperature_c"] = self._safe_float(station_data.get("tre200h0")) or current["temperature_c"]
+            current["wind_kmh"] = self._safe_float(station_data.get("fu3010h0"))
+            current["wind_dir"] = self._safe_float(station_data.get("dkl010h0"))
+            current["humidity"] = self._safe_float(station_data.get("ure200h0"))
+            current["pressure"] = self._safe_float(station_data.get("pp0qffh0")) or self._safe_float(station_data.get("prestah0"))
+
+        data = {
+            "location_name": point_name or station_name or station_abbr,
+            "current": current,
+            "hourly": hourly,
+            "daily": daily
+        }
+
+        self._save_meteoswiss_cache({
+            "point_id": point_id,
+            "item_updated": item_updated,
+            "data": data
+        })
+
+        return data
+
+    def parse_meteoswiss_data(self, data, tz, units, time_format, lat, lon):
+        current = data.get("current", {})
+        daily = data.get("daily", [])
+        hourly = data.get("hourly", [])
+
+        current_dt = current.get("time") or datetime.now(tz)
+        sunrise_dt, sunset_dt = self._get_sun_times(lat, lon, current_dt.date(), tz)
+        is_day = True
+        if sunrise_dt and sunset_dt:
+            is_day = sunrise_dt <= current_dt <= sunset_dt
+
+        current_temp = self._convert_temperature(current.get("temperature_c"), units)
+        current_feels = current_temp
+        temp_unit = "°C" if units == "metric" else "°F" if units == "imperial" else "K"
+
+        current_icon = self._map_meteoswiss_icon(current.get("symbol"), is_day)
+
+        forecast = []
+        for day_info in daily:
+            dt = tz.localize(datetime.combine(day_info["date"], datetime.min.time()))
+            day_label = dt.strftime("%a")
+            tmax = self._convert_temperature(day_info.get("max_c"), units)
+            tmin = self._convert_temperature(day_info.get("min_c"), units)
+            icon = self._map_meteoswiss_icon(day_info.get("symbol"), True)
+
+            try:
+                phase_age = moon.phase(day_info["date"])
+                phase_name_north_hemi = get_moon_phase_name(phase_age)
+                LUNAR_CYCLE_DAYS = 29.530588853
+                phase_fraction = phase_age / LUNAR_CYCLE_DAYS
+                illum_pct = (1 - math.cos(2 * math.pi * phase_fraction)) / 2 * 100
+            except Exception:
+                illum_pct = 0
+                phase_name_north_hemi = "newmoon"
+            moon_icon_path = self.get_moon_phase_icon_path(phase_name_north_hemi, lat)
+
+            forecast.append({
+                "day": day_label,
+                "high": int(tmax) if tmax is not None else 0,
+                "low": int(tmin) if tmin is not None else 0,
+                "icon": icon,
+                "moon_phase_pct": f"{illum_pct:.0f}",
+                "moon_phase_icon": moon_icon_path
+            })
+
+        # Ensure at least one forecast entry for today
+        if not forecast:
+            forecast.append({"day": current_dt.strftime("%a"), "high": 0, "low": 0, "icon": current_icon})
+
+        hourly_forecast = []
+        for hour in hourly:
+            dt = hour.get("time")
+            if not dt:
+                continue
+            sunrise_h, sunset_h = self._get_sun_times(lat, lon, dt.date(), tz)
+            hour_is_day = True
+            if sunrise_h and sunset_h:
+                hour_is_day = sunrise_h <= dt <= sunset_h
+            icon = self._map_meteoswiss_icon(hour.get("symbol"), hour_is_day)
+            temp = self._convert_temperature(hour.get("temperature_c"), units)
+            precip_prob = hour.get("precip_prob")
+            precip_prob = (precip_prob / 100.0) if precip_prob is not None else 0
+            rain = self._convert_precip(hour.get("precip_mm"), units) or 0
+            hourly_forecast.append({
+                "time": self.format_time(dt, time_format, True),
+                "temperature": int(temp) if temp is not None else 0,
+                "precipitation": precip_prob,
+                "rain": rain,
+                "icon": icon
+            })
+
+        # Data points
+        data_points = []
+        sunrise, sunset = self._get_sun_times(lat, lon, current_dt.date(), tz)
+        if sunrise:
+            data_points.append({
+                "label": "Sunrise",
+                "measurement": self.format_time(sunrise, time_format, include_am_pm=False),
+                "unit": "" if time_format == "24h" else sunrise.strftime('%p'),
+                "icon": self.get_plugin_dir('icons/sunrise.png')
+            })
+        if sunset:
+            data_points.append({
+                "label": "Sunset",
+                "measurement": self.format_time(sunset, time_format, include_am_pm=False),
+                "unit": "" if time_format == "24h" else sunset.strftime('%p'),
+                "icon": self.get_plugin_dir('icons/sunset.png')
+            })
+
+        wind_speed = self._convert_wind_speed(current.get("wind_kmh"), units)
+        wind_dir = current.get("wind_dir")
+        if wind_speed is not None:
+            wind_unit = "mph" if units == "imperial" else "km/h"
+            wind_arrow = self.get_wind_arrow(wind_dir or 0)
+            data_points.append({
+                "label": "Wind",
+                "measurement": round(wind_speed, 1),
+                "unit": wind_unit,
+                "icon": self.get_plugin_dir('icons/wind.png'),
+                "arrow": wind_arrow
+            })
+
+        humidity = current.get("humidity")
+        if humidity is not None:
+            data_points.append({
+                "label": "Humidity",
+                "measurement": round(humidity, 0),
+                "unit": '%',
+                "icon": self.get_plugin_dir('icons/humidity.png')
+            })
+
+        pressure = current.get("pressure")
+        if pressure is not None:
+            data_points.append({
+                "label": "Pressure",
+                "measurement": round(pressure, 1),
+                "unit": 'hPa',
+                "icon": self.get_plugin_dir('icons/pressure.png')
+            })
+
+        template_params = {
+            "current_date": current_dt.strftime("%A, %B %d"),
+            "current_day_icon": current_icon,
+            "current_temperature": str(round(current_temp)) if current_temp is not None else "0",
+            "feels_like": str(round(current_feels)) if current_feels is not None else "0",
+            "temperature_unit": temp_unit,
+            "units": units,
+            "time_format": time_format,
+            "forecast": forecast,
+            "data_points": data_points,
+            "hourly_forecast": hourly_forecast
+        }
+
+        return template_params
+
     def format_time(self, dt, time_format, hour_only=False, include_am_pm=True):
         """Format datetime based on 12h or 24h preference"""
         if time_format == "24h":

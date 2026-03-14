@@ -12,6 +12,10 @@
         <input readonly type="text" id="longitude" name="longitude" class="form-input" />
     </div>
     <button type="button" id="openMap" class="action-button compact">Select Location</button>
+    <div class="form-group">
+        <input type="checkbox" id="autoLocation" name="autoLocation" onclick="this.value=this.checked ? 'true' : 'false';">
+        <span>Auto-detect location (IP)</span>
+    </div>
 </div>
 
 <div class="form-group">
@@ -19,6 +23,7 @@
     <select id="weatherProvider" name="weatherProvider" class="form-input" onchange="updateTitleOptions(this.value)">
         <option value="OpenMeteo">Open-Meteo</option>
         <option value="OpenWeatherMap">OpenWeatherMap</option>
+        <option value="MeteoSwiss">MeteoSwiss (Open Data)</option>
     </select>
 
     <label for="units" class="form-label">Units:</label>
@@ -142,6 +147,21 @@
 
             // Hide API Key required label for Open-Meteo
             if (apiKeyLabel) apiKeyLabel.style.display = 'none';
+        } else if (provider === 'MeteoSwiss') {
+            // Show and enable both options
+            titleLocationRadio.style.display = '';
+            titleLocationLabel.style.display = '';
+            titleLocationRadio.disabled = false;
+
+            titleCustomRadio.disabled = false;
+            customTitleInput.disabled = false;
+
+            titleTimeZone.style.display = '';
+            titleTimeZoneLabel.style.display = '';
+            titleTimeZone.disabled = false;
+
+            // Hide API Key required label for MeteoSwiss
+            if (apiKeyLabel) apiKeyLabel.style.display = 'none';
         } else {
             // Show and enable both options
             titleLocationRadio.style.display = '';
@@ -199,9 +219,17 @@
             closeModal('mapModal');
         });
 
+        function applyAutoLocationState() {
+            const autoLoc = document.getElementById('autoLocation').checked;
+            $openMap.disabled = autoLoc;
+            $openMap.style.opacity = autoLoc ? 0.6 : 1;
+        }
+
         if (loadPluginSettings) {
             document.getElementById('latitude').value = pluginSettings.latitude;
             document.getElementById('longitude').value = pluginSettings.longitude;
+            document.getElementById('autoLocation').checked = pluginSettings.autoLocation === true || pluginSettings.autoLocation === "true";
+            document.getElementById('autoLocation').value = pluginSettings.autoLocation;
 
             document.getElementById('units').value = pluginSettings.units;
 
@@ -253,10 +281,14 @@
             document.getElementById('moonPhase').checked = false;
 			document.getElementById('moonPhase').value = "false";
             document.getElementById('weatherTimeZone').value = "locationTimeZone";
+            document.getElementById('autoLocation').checked = false;
+            document.getElementById('autoLocation').value = "false";
         }
 
         document.getElementById('weatherProvider').value = weatherProvider;
         document.querySelector(`input[name="titleSelection"][value="${selectedTitle}"]`).checked = true;
         updateTitleOptions(weatherProvider)
+        applyAutoLocationState()
+        document.getElementById('autoLocation').addEventListener('change', applyAutoLocationState);
     });
 </script>
