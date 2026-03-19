@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>README.md</title>
+    <meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+    
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+html,footer,header{
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Custom MD PDF CSS
+ */
+html,footer,header{
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+
+ }
+body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+<link rel="stylesheet" href="file:///r%3A/2.Travail/1.Enseignement/Cours/_1.Outils/2.Developpement/1.SCSS/main.css" type="text/css"><link rel="stylesheet" href="file:///d%3A/rdaros/Cours/_1.Outils/2.Developpement/1.SCSS/main.css" type="text/css">
+</head>
+
+<body>
+    <h1 id="inkypi">InkyPi</h1>
+<img src="file:///c:/Users/louis/kDrive/CFC28/Semestre 3 - 4/informatique/217 Concevoir, planifier et mettre en place un service pour l&#x2019;IoE/Projet/weather-station/docs/images/inky_clock.jpg">
+<h2 id="about-inkypi">About InkyPi</h2>
+<p>InkyPi is an open-source, customizable E-Ink display powered by a Raspberry Pi. Designed for simplicity and flexibility, it allows you to effortlessly display the content you care about, with a simple web interface that makes setup and configuration effortless.</p>
+<p><strong>Features</strong>:</p>
+<ul>
+<li>Natural paper-like aethetic: crisp, minimalist visuals that are easy on the eyes, with no glare or backlight</li>
+<li>Web Interface allows you to update and configure the display from any device on your network</li>
+<li>Minimize distractions: no LEDS, noise, or notifications, just the content you care about</li>
+<li>Easy installation and configuration, perfect for beginners and makers alike</li>
+<li>Open source project allowing you to modify, customize, and create your own plugins</li>
+<li>Set up scheduled playlists to display different plugins at designated times</li>
+</ul>
+<p><strong>Plugins</strong>:</p>
+<ul>
+<li>Image Upload: Upload and display any image from your browser</li>
+<li>Daily Newspaper/Comic: Show daily comics and front pages of major newspapers from around the world</li>
+<li>Clock: Customizable clock faces for displaying time</li>
+<li>AI Image/Text: Generate images and dynamic text from prompts using OpenAI's models</li>
+<li>Weather: Display current weather conditions and multi-day forecasts with a customizable layout</li>
+<li>Calendar: Visualize your calendar from Google, Outlook, or Apple Calendar with customizable layouts</li>
+</ul>
+<p>And additional plugins coming soon! For documentation on building custom plugins, see <a href="./docs/building_plugins.md">Building InkyPi Plugins</a>.</p>
+<p>See <a href="https://github.com/fatihak/InkyPi/wiki">the wiki</a> for a list of community-maintained third-party plugins.</p>
+<h2 id="hardware">Hardware</h2>
+<ul>
+<li>Raspberry Pi (4 | 3 | Zero 2 W)
+<ul>
+<li>Recommended to get 40 pin Pre Soldered Header</li>
+</ul>
+</li>
+<li>MicroSD Card (min 8 GB) like <a href="https://amzn.to/3G3Tq9W">this one</a></li>
+<li>E-Ink Display:
+<ul>
+<li>Inky Impression by Pimoroni
+<ul>
+<li><strong><a href="https://collabs.shop/q2jmza">13.3 Inch Display</a></strong></li>
+<li><strong><a href="https://collabs.shop/q2jmza">7.3 Inch Display</a></strong></li>
+<li><strong><a href="https://collabs.shop/ns6m6m">5.7 Inch Display</a></strong></li>
+<li><strong><a href="https://collabs.shop/cpwtbh">4 Inch Display</a></strong></li>
+</ul>
+</li>
+<li>Inky wHAT by Pimoroni
+<ul>
+<li><strong><a href="https://collabs.shop/jrzqmf">4.2 Inch Display</a></strong></li>
+</ul>
+</li>
+<li>Waveshare e-Paper Displays
+<ul>
+<li>Spectra 6 (E6) Full Color <strong><a href="https://www.waveshare.com/4inch-e-paper-hat-plus-e.htm?&amp;aff_id=111126">4 inch</a></strong> <strong><a href="https://www.waveshare.com/7.3inch-e-paper-hat-e.htm?&amp;aff_id=111126">7.3 inch</a></strong> <strong><a href="https://www.waveshare.com/13.3inch-e-paper-hat-plus-e.htm?&amp;aff_id=111126">13.3 inch</a></strong></li>
+<li>Black and White <strong><a href="https://www.waveshare.com/7.5inch-e-paper-hat.htm?&amp;aff_id=111126">7.5 inch</a></strong> <strong><a href="https://www.waveshare.com/13.3inch-e-paper-hat-k.htm?&amp;aff_id=111126">13.3 inch</a></strong></li>
+<li>See <a href="https://www.waveshare.com/product/raspberry-pi/displays/e-paper.htm?&amp;aff_id=111126">Waveshare e-paper displays</a> or visit their <a href="https://amzn.to/3HPRTEZ">Amazon store</a> for additional models. Note that some models like the IT8951 based displays are not supported. See later section on <a href="#waveshare-display-support">Waveshare e-Paper</a> compatibility for more information.</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Picture Frame or 3D Stand
+<ul>
+<li>See <a href="./docs/community.md">community.md</a> for 3D models, custom builds, and other submissions from the community</li>
+</ul>
+</li>
+</ul>
+<p><strong>Disclosure:</strong> The links above are affiliate links. I may earn a commission from qualifying purchases made through them, at no extra cost to you, which helps maintain and develop this project.</p>
+<h2 id="installation">Installation</h2>
+<p>To install InkyPi, follow these steps:</p>
+<ol>
+<li>
+<p>Clone the repository:</p>
+<pre class="hljs"><code><div>git <span class="hljs-built_in">clone</span> https://github.com/PiWebswiss/weather-station.git
+</div></code></pre>
+</li>
+<li>
+<p>Navigate to the project directory:</p>
+<pre class="hljs"><code><div><span class="hljs-built_in">cd</span> InkyPi
+</div></code></pre>
+</li>
+<li>
+<p>Run the installation script with sudo:</p>
+<pre class="hljs"><code><div>sudo bash install/install.sh [-W &lt;waveshare device model&gt;]
+</div></code></pre>
+<p>Option:</p>
+<ul>
+<li>-W &lt;waveshare device model&gt; - specify this parameter <strong>ONLY</strong> if installing for a Waveshare display.  After the -W option specify the Waveshare device model e.g. epd7in3f.</li>
+</ul>
+<p>e.g. for Inky displays use:</p>
+<pre class="hljs"><code><div>sudo bash install/install.sh
+</div></code></pre>
+<p>and for <a href="#waveshare-display-support">Waveshare displays</a> use:</p>
+<pre class="hljs"><code><div>sudo bash install/install.sh -W epd7in3f
+</div></code></pre>
+</li>
+</ol>
+<p>After the installation is complete, the script will prompt you to reboot your Raspberry Pi. Once rebooted, the display will update to show the InkyPi splash screen.</p>
+<p>Note:</p>
+<ul>
+<li>The installation script requires sudo privileges to install and run the service. We recommend starting with a fresh installation of Raspberry Pi OS to avoid potential conflicts with existing software or configurations.</li>
+<li>The installation process will automatically enable the required SPI and I2C interfaces on your Raspberry Pi.</li>
+</ul>
+<p>For more details, including instructions on how to image your microSD with Raspberry Pi OS, refer to <a href="./docs/installation.md">installation.md</a>. You can also checkout <a href="https://youtu.be/L5PvQj1vfC4">this YouTube tutorial</a>.</p>
+<h2 id="update">Update</h2>
+<p>To update your InkyPi with the latest code changes, follow these steps:</p>
+<ol>
+<li>Navigate to the project directory:<pre class="hljs"><code><div><span class="hljs-built_in">cd</span> InkyPi
+</div></code></pre>
+</li>
+<li>Fetch the latest changes from the repository:<pre class="hljs"><code><div>git pull
+</div></code></pre>
+</li>
+<li>Run the update script with sudo:<pre class="hljs"><code><div>sudo bash install/update.sh
+</div></code></pre>
+</li>
+</ol>
+<p>This process ensures that any new updates, including code changes and additional dependencies, are properly applied without requiring a full reinstallation.</p>
+<h2 id="uninstall">Uninstall</h2>
+<p>To uninstall InkyPi, simply run the following command:</p>
+<pre class="hljs"><code><div>sudo bash install/uninstall.sh
+</div></code></pre>
+<h2 id="roadmap">Roadmap</h2>
+<p>The InkyPi project is constantly evolving, with many exciting features and improvements planned for the future.</p>
+<ul>
+<li>Plugins, plugins, plugins</li>
+<li>Modular layouts to mix and match plugins</li>
+<li>Support for buttons with customizable action bindings</li>
+<li>Improved Web UI on mobile devices</li>
+</ul>
+<p>Check out the public <a href="https://trello.com/b/SWJYWqe4/inkypi">trello board</a> to explore upcoming features and vote on what you'd like to see next!</p>
+<h2 id="waveshare-display-support">Waveshare Display Support</h2>
+<p>Waveshare offers a range of e-Paper displays, similar to the Inky screens from Pimoroni, but with slightly different requirements. While Inky displays auto-configure via the inky Python library, Waveshare displays require model-specific drivers from their <a href="https://github.com/waveshareteam/e-Paper/tree/master/RaspberryPi_JetsonNano/python/lib/waveshare_epd">Python EPD library</a>.</p>
+<p>This project has been tested with several Waveshare models. <strong>Displays based on the IT8951 controller are not supported</strong>, and <strong>screens smaller than 4 inches are not recommended</strong> due to limited resolution.</p>
+<p>If your display model has a corresponding driver in the link above, it’s likely to be compatible. When running the installation script, use the -W option to specify your display model (without the .py extension). The script will automatically fetch and install the correct driver.</p>
+<h2 id="license">License</h2>
+<p>Distributed under the GPL 3.0 License, see <a href="./LICENSE">LICENSE</a> for more information.</p>
+<p>This project includes fonts and icons with separate licensing and attribution requirements. See <a href="./docs/attribution.md">Attribution</a> for details.</p>
+<h2 id="issues">Issues</h2>
+<p>Check out the <a href="./docs/troubleshooting.md">troubleshooting guide</a>. If you're still having trouble, feel free to create an issue on the <a href="https://github.com/fatihak/InkyPi/issues">GitHub Issues</a> page.</p>
+<p>If you're using a Pi Zero W, note that there are known issues during the installation process. See <a href="./docs/troubleshooting.md#known-issues-during-pi-zero-w-installation">Known Issues during Pi Zero W Installation</a> section in the troubleshooting guide for additional details..</p>
+<h2 id="sponsoring">Sponsoring</h2>
+<p>InkyPi is maintained and developed with the help of sponsors. If you enjoy the project or find it useful, consider supporting its continued development.</p>
+<p align="center">
+<a href="https://github.com/sponsors/fatihak" target="_blank"><img src="https://user-images.githubusercontent.com/345274/133218454-014a4101-b36a-48c6-a1f6-342881974938.png" alt="Become a Patreon" height="35" width="auto"></a>
+<a href="https://www.patreon.com/akzdev" target="_blank"><img src="https://c5.patreon.com/external/logo/become_a_patron_button.png" alt="Become a Patreon" height="35" width="auto"></a>
+<a href="https://www.buymeacoffee.com/akzdev" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="35" width="auto"></a>
+</p>
+<h2 id="acknowledgements">Acknowledgements</h2>
+<p>Check out these similar projects:</p>
+<ul>
+<li><a href="https://github.com/txoof/PaperPi">PaperPi</a> - awesome project that supports waveshare devices
+<ul>
+<li>shoutout to @txoof for assisting with InkyPi's installation process</li>
+</ul>
+</li>
+<li><a href="https://github.com/aceinnolab/Inkycal">InkyCal</a> - has modular plugins for building custom dashboards</li>
+<li><a href="https://github.com/tlstommy/PiInk">PiInk</a> - inspiration behind InkyPi's flask web ui</li>
+<li><a href="https://github.com/sjnims/rpi_weather_display">rpi_weather_display</a> - alternative eink weather dashboard with advanced power efficiency</li>
+</ul>
+
+</body>
+
+</html>
