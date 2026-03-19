@@ -103,7 +103,7 @@ To update your InkyPi with the latest code changes, follow these steps:
 This process ensures that any new updates, including code changes and additional dependencies, are properly applied without requiring a full reinstallation.
 
 ## Uninstall
-To install InkyPi, simply run the following command:
+To uninstall InkyPi, simply run the following command:
 
 ```bash
 sudo bash install/uninstall.sh
