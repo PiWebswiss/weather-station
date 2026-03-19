@@ -73,7 +73,7 @@ METEOSWISS_SMN_COLLECTION = "ch.meteoschweiz.ogd-smn"
 METEOSWISS_LOCAL_FORECAST_META_POINT_URL = "https://data.geo.admin.ch/ch.meteoschweiz.ogd-local-forecasting/ogd-local-forecasting_meta_point.csv"
 METEOSWISS_SMN_META_STATIONS_URL = "https://data.geo.admin.ch/ch.meteoschweiz.ogd-smn/ogd-smn_meta_stations.csv"
 
-METEOSWISS_CACHE_TTL_SECONDS = 2 * 60 * 60
+METEOSWISS_CACHE_TTL_SECONDS = 30 * 60  # 30 min — was 2 h, kept stale during the day
 
 # MeteoSwiss icon code -> internal icon name (mapped from official symbol descriptions)
 METEOSWISS_ICON_MAP = {
@@ -1098,13 +1098,14 @@ class Weather(BasePlugin):
             if len(hourly) >= 24:
                 break
 
-        # Determine current time slot
+        # Determine current time slot — use closest slot to now (not just last <= now)
         current_slot = None
+        min_diff = None
         for dt in sorted(temp_map.keys()):
-            if dt <= now:
+            diff = abs((dt - now).total_seconds())
+            if min_diff is None or diff < min_diff:
+                min_diff = diff
                 current_slot = dt
-        if current_slot is None and temp_map:
-            current_slot = sorted(temp_map.keys())[0]
 
         current = {
             "time": current_slot or now,
@@ -1149,14 +1150,27 @@ class Weather(BasePlugin):
                 "symbol": daily_symbol.get(day, {}).get("code")
             })
 
-        # Enrich with station observations if available
+        # Enrich with live station observations if available
+        # SMN stations give real measurements; prefer them over forecast values
         station_data = self._get_smn_current(station_abbr)
         if station_data:
-            current["temperature_c"] = self._safe_float(station_data.get("tre200h0")) or current["temperature_c"]
-            current["wind_kmh"] = self._safe_float(station_data.get("fu3010h0"))
-            current["wind_dir"] = self._safe_float(station_data.get("dkl010h0"))
-            current["humidity"] = self._safe_float(station_data.get("ure200h0"))
-            current["pressure"] = self._safe_float(station_data.get("pp0qffh0")) or self._safe_float(station_data.get("prestah0"))
+            obs_temp = self._safe_float(station_data.get("tre200h0"))
+            if obs_temp is not None:
+                current["temperature_c"] = obs_temp
+            # fu3010h0 is in m/s — convert to km/h for consistency with MeteoSwiss display
+            wind_ms = self._safe_float(station_data.get("fu3010h0"))
+            if wind_ms is not None:
+                current["wind_kmh"] = wind_ms * 3.6
+            wind_dir = self._safe_float(station_data.get("dkl010h0"))
+            if wind_dir is not None:
+                current["wind_dir"] = wind_dir
+            humidity = self._safe_float(station_data.get("ure200h0"))
+            if humidity is not None:
+                current["humidity"] = humidity
+            pressure = (self._safe_float(station_data.get("pp0qffh0"))
+                        or self._safe_float(station_data.get("prestah0")))
+            if pressure is not None:
+                current["pressure"] = pressure
 
         data = {
             "location_name": point_name or station_name or station_abbr,

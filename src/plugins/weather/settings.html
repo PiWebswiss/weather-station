@@ -12,9 +12,40 @@
         <input readonly type="text" id="longitude" name="longitude" class="form-input" />
     </div>
     <button type="button" id="openMap" class="action-button compact">Select Location</button>
-    <div class="form-group">
-        <input type="checkbox" id="autoLocation" name="autoLocation" onclick="this.value=this.checked ? 'true' : 'false';">
-        <span>Auto-detect location (IP)</span>
+    <button type="button" id="gpsDetect" class="action-button compact">📍 Detect via GPS</button>
+    <div id="gpsStatus" style="font-size:0.85em; margin-top:4px; color:#555;"></div>
+</div>
+
+<!-- ── GPS permission help modal ────────────────────────────────────────── -->
+<div id="gpsPermissionModal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:460px;">
+        <span class="close-button" onclick="closeModal('gpsPermissionModal')">×</span>
+        <h2>GPS Location — Enable Permission</h2>
+        <div class="separator"></div>
+
+        <p style="margin:12px 0 8px; font-size:.9em;">
+            Your browser blocked location access. Follow the steps for your browser below, then click <strong>Detect via GPS</strong> again.<br><br>
+            <strong>Alternative:</strong> Use <strong>Select Location</strong> to manually drag the map marker to your exact position — no GPS needed.
+        </p>
+
+        <p style="margin:10px 0 4px; font-weight:bold; font-size:.9em;">Chrome (Desktop / Android)</p>
+        <ol style="font-size:.85em; margin:0 0 10px 18px; line-height:1.7;">
+            <li>Click the lock icon in the address bar</li>
+            <li>Site settings → <strong>Location</strong> → <strong>Allow</strong></li>
+            <li>Reload the page and try again</li>
+        </ol>
+
+        <p style="margin:10px 0 4px; font-weight:bold; font-size:.9em;">Safari (iPhone / iPad)</p>
+        <ol style="font-size:.85em; margin:0 0 10px 18px; line-height:1.7;">
+            <li>Settings → Privacy → Location Services → <strong>Safari</strong> → While Using</li>
+        </ol>
+
+        <p style="margin:10px 0 4px; font-weight:bold; font-size:.9em;">Firefox</p>
+        <ol style="font-size:.85em; margin:0 0 10px 18px; line-height:1.7;">
+            <li>Menu → Settings → Site Permissions → Location → Allow this site</li>
+        </ol>
+
+        <button class="action-button" onclick="closeModal('gpsPermissionModal')">Close</button>
     </div>
 </div>
 
@@ -106,6 +137,21 @@
             <option value="locationTimeZone">Use Location Time Zone</option>
             <option value="localTimeZone">Use Local Time Zone</option>
         </select>
+    </div>
+
+    <div class="form-group">
+        <label for="partialZone" class="form-label">Partial Refresh Zone (e-ink):</label>
+        <select id="partialZone" name="partialZone" class="form-input">
+            <option value="all">All zones — full display</option>
+            <option value="temp">Temperature only (fastest update)</option>
+            <option value="header">Header only (city + date)</option>
+            <option value="current">Current weather + metrics</option>
+            <option value="graph">Hourly graph only</option>
+            <option value="forecast">Forecast only</option>
+        </select>
+        <small style="display:block; margin-top:4px; color:#888;">
+            Renders only one zone — ideal for e-ink partial refresh without ghosting. Use "Temperature only" for the fastest updates.
+        </small>
     </div>
 
 </div>
@@ -219,17 +265,9 @@
             closeModal('mapModal');
         });
 
-        function applyAutoLocationState() {
-            const autoLoc = document.getElementById('autoLocation').checked;
-            $openMap.disabled = autoLoc;
-            $openMap.style.opacity = autoLoc ? 0.6 : 1;
-        }
-
         if (loadPluginSettings) {
             document.getElementById('latitude').value = pluginSettings.latitude;
             document.getElementById('longitude').value = pluginSettings.longitude;
-            document.getElementById('autoLocation').checked = pluginSettings.autoLocation === true || pluginSettings.autoLocation === "true";
-            document.getElementById('autoLocation').value = pluginSettings.autoLocation;
 
             document.getElementById('units').value = pluginSettings.units;
 
@@ -257,7 +295,7 @@
             document.getElementById('moonPhase').value = pluginSettings.moonPhase;
 
             document.getElementById('weatherTimeZone').value = pluginSettings.weatherTimeZone;
-            
+            document.getElementById('partialZone').value = pluginSettings.partialZone || 'all';
             selectedTitle = pluginSettings.titleSelection || 'location';
             weatherProvider = pluginSettings.weatherProvider || 'OpenMeteo';
 
@@ -281,14 +319,51 @@
             document.getElementById('moonPhase').checked = false;
 			document.getElementById('moonPhase').value = "false";
             document.getElementById('weatherTimeZone').value = "locationTimeZone";
-            document.getElementById('autoLocation').checked = false;
-            document.getElementById('autoLocation').value = "false";
+            document.getElementById('partialZone').value = 'all';
         }
 
         document.getElementById('weatherProvider').value = weatherProvider;
         document.querySelector(`input[name="titleSelection"][value="${selectedTitle}"]`).checked = true;
         updateTitleOptions(weatherProvider)
-        applyAutoLocationState()
-        document.getElementById('autoLocation').addEventListener('change', applyAutoLocationState);
+        // ── Bouton GPS : remplit lat/lon via le navigateur ──────────────────
+        document.getElementById('gpsDetect').addEventListener('click', () => {
+            const statusEl = document.getElementById('gpsStatus');
+
+            if (!navigator.geolocation) {
+                statusEl.style.color = '#c00';
+                statusEl.textContent = '❌ GPS not available in this browser. Use the map instead.';
+                openModal('gpsPermissionModal');
+                return;
+            }
+
+            statusEl.style.color = '#555';
+            statusEl.textContent = '⏳ Getting GPS position…';
+
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const lat = pos.coords.latitude.toFixed(6);
+                    const lon = pos.coords.longitude.toFixed(6);
+                    const acc = Math.round(pos.coords.accuracy);
+
+                    $latitude.value  = lat;
+                    $longitude.value = lon;
+
+                    statusEl.style.color = '#2a7a2a';
+                    statusEl.textContent = `✅ Location detected: ${lat}, ${lon}  (±${acc} m)`;
+                },
+                (err) => {
+                    statusEl.style.color = '#c00';
+                    if (err.code === 1) {
+                        statusEl.textContent = '❌ Permission denied — see instructions below';
+                        openModal('gpsPermissionModal');
+                    } else if (err.code === 2) {
+                        statusEl.textContent = '❌ Position unavailable — try again or use the map.';
+                    } else {
+                        statusEl.textContent = '❌ Timeout — try again.';
+                    }
+                },
+                { enableHighAccuracy: true, timeout: 15000 }
+            );
+        });
     });
 </script>
