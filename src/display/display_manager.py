@@ -54,6 +54,15 @@ class DisplayManager:
         else:
             raise ValueError(f"Unsupported display type: {display_type}")
 
+    def _preprocess_image(self, image, image_settings):
+        """Apply orientation, resize, rotation, and enhancement to the image."""
+        image = change_orientation(image, self.device_config.get_config("orientation"))
+        image = resize_image(image, self.device_config.get_resolution(), image_settings)
+        if self.device_config.get_config("inverted_image"):
+            image = image.rotate(180)
+        image = apply_image_enhancement(image, self.device_config.get_config("image_settings"))
+        return image
+
     def display_image(self, image, image_settings=[]):
         
         """
@@ -75,10 +84,38 @@ class DisplayManager:
         image.save(self.device_config.current_image_file)
 
         # Resize and adjust orientation
-        image = change_orientation(image, self.device_config.get_config("orientation"))
-        image = resize_image(image, self.device_config.get_resolution(), image_settings)
-        if self.device_config.get_config("inverted_image"): image = image.rotate(180)
-        image = apply_image_enhancement(image, self.device_config.get_config("image_settings"))
+        image = self._preprocess_image(image, image_settings)
 
         # Pass to the concrete instance to render to the device.
         self.display.display_image(image, image_settings)
+
+    def display_partial_image(self, image, image_settings=[]):
+        """
+        Delegates partial refresh rendering to the appropriate display instance.
+
+        Uses hardware partial refresh when supported (Inky with UPDATE_MODE_PARTIAL,
+        Waveshare with displayPartial/PART_UPDATE). Falls back to full refresh
+        automatically if the connected panel does not support partial mode.
+
+        Args:
+            image (PIL.Image): The image to be displayed.
+            image_settings (list, optional): List of settings to modify image rendering.
+
+        Raises:
+            ValueError: If no valid display instance is found.
+        """
+
+        if not hasattr(self, "display"):
+            raise ValueError("No valid display instance initialized.")
+
+        logger.info("Partial refresh requested.")
+
+        # Do NOT save partial-zone image as current_image_file — it would break
+        # the admin UI preview (which would show only the partial zone, e.g. temp only).
+        # The full-zone image from the previous full refresh is preserved as the preview.
+
+        # Apply the same preprocessing pipeline as display_image
+        image = self._preprocess_image(image, image_settings)
+
+        # Pass to the concrete instance; it will use partial mode if available
+        self.display.display_partial_image(image, image_settings)

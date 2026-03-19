@@ -140,3 +140,42 @@ class WaveshareDisplay(AbstractDisplay):
         # Put device into low power mode (EPD displays maintain image when powered off)
         logger.info("Putting Waveshare display into sleep mode for power saving.")
         self.epd_display.sleep()
+
+    def display_partial_image(self, image, image_settings=[]):
+        """
+        Displays an image using hardware partial refresh on supported Waveshare EPD panels.
+
+        Checks whether the loaded driver exposes displayPartial() and a PART_UPDATE
+        constant (present on models like epd2in9, epd2in13, epd4in2, etc.).
+        Bi-color (red+black) displays do NOT support partial refresh and will
+        automatically fall back to a full refresh.
+
+        Args:
+            image (PIL.Image): The image to be displayed.
+            image_settings (list, optional): Additional settings to modify image rendering.
+        """
+        logger.info("Attempting Waveshare partial refresh.")
+        if not image:
+            raise ValueError("No image provided.")
+
+        # Bi-color displays cannot do partial refresh
+        if self.bi_color_display:
+            logger.info("Bi-color display detected — partial refresh not supported, using full refresh.")
+            self.display_image(image, image_settings)
+            return
+
+        epd = self.epd_display
+        if hasattr(epd, "displayPartial") and hasattr(epd, "PART_UPDATE"):
+            try:
+                logger.info("Waveshare partial refresh supported — using displayPartial().")
+                # Re-init in partial update mode (avoids full Clear + flicker)
+                self.epd_display_init(epd.PART_UPDATE)
+                epd.displayPartial(epd.getbuffer(image))
+                epd.sleep()
+                return
+            except Exception as e:
+                logger.warning(f"Waveshare partial refresh failed: {e}. Falling back to full refresh.")
+
+        # Fallback: full refresh
+        logger.info("Waveshare partial refresh not supported, performing full refresh.")
+        self.display_image(image, image_settings)

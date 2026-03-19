@@ -487,6 +487,60 @@ The current admin redesign gives a WordPress-like sidebar layout. A true live-ed
 3. WebSocket push from Pi to browser for real-time preview update
 This is possible but requires changes to `blueprints/plugin.py` to return a preview image after save.
 
+
+---
+
+## 7. True Hardware Partial Refresh
+
+### Background
+
+The previous partialZone setting used a CSS trick (display:none) that still triggered a full e-ink refresh every cycle. This section documents the true hardware partial refresh implementation added on 2026-03-19.
+
+### How it works
+
+1. User sets partialZone to anything other than "all" in plugin settings.
+2. The plugin renders a screenshot with only that zone visible (Chromium captures only the visible content).
+3. refresh_task.py detects partialZone != "all" and calls display_manager.display_partial_image() instead of display_image().
+4. display_manager applies the same preprocessing (orientation, resize, enhance) then delegates to the hardware driver.
+5. The driver attempts a hardware-level partial update. Falls back to full refresh automatically if not supported.
+
+### Files changed
+
+**src/display/abstract_display.py** - Added default display_partial_image() that falls back to display_image(). All subclasses inherit this safe fallback.
+
+**src/display/mock_display.py** - Overrides display_partial_image() - logs and calls display_image() (no real hardware to update).
+
+**src/display/inky_display.py** - Overrides display_partial_image() using inspect.signature() to detect whether show() accepts update_mode. If yes, imports UPDATE_MODE_PARTIAL from inky.inky_uc8159 and calls show(update_mode=UPDATE_MODE_PARTIAL). Compatible panels: Inky Impression 7.3in (UC8159). All others fall back automatically.
+
+**src/display/waveshare_display.py** - Overrides display_partial_image() by checking hasattr(epd, "displayPartial") and hasattr(epd, "PART_UPDATE"). If both exist, calls epd.Init(epd.PART_UPDATE) then epd.displayPartial(). Bi-color displays are excluded (they never support partial refresh). Compatible models: epd2in9, epd2in13, epd4in2, epd7in5, and similar.
+
+**src/display/display_manager.py** - Extracted _preprocess_image() helper (shared by both display paths). Added display_partial_image() with the same orientation/resize/enhancement pipeline, then calls self.display.display_partial_image().
+
+**src/refresh_task.py** - Added get_plugin_settings() method to RefreshAction base class (returns None), ManualRefresh (returns self.plugin_settings), and PlaylistRefresh (returns self.plugin_instance.settings). The display routing now reads partialZone and routes accordingly:
+
+    plugin_settings = refresh_action.get_plugin_settings()
+    partial_zone = plugin_settings.get("partialZone", "all") if plugin_settings else "all"
+    if partial_zone and partial_zone != "all":
+        self.display_manager.display_partial_image(image, ...)
+    else:
+        self.display_manager.display_image(image, ...)
+
+### Hardware compatibility
+
+| Display | Partial refresh | Notes |
+|---|---|---|
+| Inky Impression UC8159 | YES | inky >= 1.5 required |
+| Other Pimoroni Inky | NO (auto fallback) | show() has no update_mode |
+| Waveshare partial-capable | YES | epd2in9/13, epd4in2, epd7in5 |
+| Waveshare bi-color | NO (auto fallback) | Hardware limitation |
+| Mock display | NO (auto fallback) | Dev environment |
+
+### Safety guarantees
+
+All fallbacks are automatic - the display is never left in an undefined state. If partial init raises an exception, full refresh is attempted. No user configuration is needed beyond setting partialZone.
+
+*Section added: 2026-03-19*
+
 ---
 
 *Last updated: 2026-03-19*

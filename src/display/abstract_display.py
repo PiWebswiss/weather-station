@@ -43,3 +43,16 @@ class AbstractDisplay:
             NotImplementedError: If not implemented in a subclass.
         """
         raise NotImplementedError("Method 'display_image(...) must be provided in a subclass.")
+
+    def display_partial_image(self, image, image_settings=[]):
+        """
+        Display an image using hardware partial refresh (only changed pixels update).
+
+        Subclasses should override this method if the hardware supports partial refresh.
+        The default implementation falls back to a full display_image() call.
+
+        Args:
+            image (PIL.Image): The image to be displayed.
+            image_settings (list, optional): List of settings to modify how the image is displayed.
+        """
+        self.display_image(image, image_settings)

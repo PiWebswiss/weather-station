@@ -27,3 +27,8 @@ class MockDisplay(AbstractDisplay):
         
         # Also save as latest.png for convenience
         image.save(os.path.join(self.output_dir, 'latest.png'), "PNG")
+
+    def display_partial_image(self, image, image_settings=[]):
+        """Mock partial refresh — behaves identically to display_image."""
+        logger.info("Mock partial refresh (no hardware, falling back to full save).")
+        self.display_image(image, image_settings)
