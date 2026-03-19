@@ -210,7 +210,7 @@ class Weather(BasePlugin):
                 current_icon = current_icon.replace("n", "d")
         data = {
             "current_date": dt.strftime("%A, %B %d"),
-            "current_day_icon": self.get_plugin_dir(f'icons/{current_icon}.png'),
+            "current_day_icon": self.get_icon_path({current_icon}),
             "current_temperature": str(round(current.get("temp"))),
             "feels_like": str(round(current.get("feels_like"))),
             "temperature_unit": UNITS[units]["temperature"],
@@ -235,7 +235,7 @@ class Weather(BasePlugin):
 
         data = {
             "current_date": dt.strftime("%A, %B %d"),
-            "current_day_icon": self.get_plugin_dir(f'icons/{current_icon}.png'),
+            "current_day_icon": self.get_icon_path({current_icon}),
             "current_temperature": str(round(current.get("temperature", 0) + temperature_conversion)),
             "feels_like": str(round(current.get("apparent_temperature", current.get("temperature", 0)) + temperature_conversion)),
             "temperature_unit": UNITS[units]["temperature"],
@@ -248,6 +248,14 @@ class Weather(BasePlugin):
         
         data['hourly_forecast'] = self.parse_open_meteo_hourly(weather_data.get('hourly', {}), units, tz, time_format, daily.get('sunrise', []), daily.get('sunset', []))
         return data
+
+
+    def get_icon_path(self, name):
+        """Return SVG icon path if downloaded, otherwise PNG fallback."""
+        svg_path = self.get_plugin_dir('icons/' + name + '.svg')
+        if os.path.isfile(svg_path):
+            return svg_path
+        return self.get_plugin_dir('icons/' + name + '.png')
 
     def map_weather_code_to_icon(self, weather_code, is_day):
 
@@ -317,7 +325,7 @@ class Weather(BasePlugin):
             elif phase_name == "lastquarter":
                 phase_name = "firstquarter"
         
-        return self.get_plugin_dir(f"icons/{phase_name}.png")
+        return self.get_icon_path(phase_name)
 
     def parse_forecast(self, daily_forecast, tz, current_suffix, lat):
         """
@@ -358,7 +366,7 @@ class Weather(BasePlugin):
                 if weather_icon.endswith('n'):
                     weather_icon = weather_icon.replace("n", "d")
             weather_icon = f"{icon_code}d"        
-            weather_icon_path = self.get_plugin_dir(f"icons/{weather_icon}.png")
+            weather_icon_path = self.get_icon_path(weather_icon)
 
             # --- moon phase & icon ---
             moon_phase = float(day["moon_phase"])  # [0.0–1.0]
@@ -405,7 +413,7 @@ class Weather(BasePlugin):
 
             code = weather_codes[i] if i < len(weather_codes) else 0
             weather_icon = self.map_weather_code_to_icon(code, is_day=1)
-            weather_icon_path = self.get_plugin_dir(f"icons/{weather_icon}.png")
+            weather_icon_path = self.get_icon_path(weather_icon)
 
             timestamp = int(dt.replace(hour=12, minute=0, second=0).timestamp())
             target_date: date = dt.date() + timedelta(days=1)
@@ -466,7 +474,7 @@ class Weather(BasePlugin):
                 "temperature": int(hour.get("temp")),
                 "precipitation": hour.get("pop"),
                 "rain": round(precip_value, 2),
-                "icon": self.get_plugin_dir(f'icons/{icon_name}.png')
+                "icon": self.get_icon_path({icon_name})
             }
             hourly.append(hour_forecast)
         return hourly
@@ -520,7 +528,7 @@ class Weather(BasePlugin):
                 "temperature": int(sliced_temperatures[i]) if i < len(sliced_temperatures) else 0,
                 "precipitation": (sliced_precipitation_probabilities[i] / 100) if i < len(sliced_precipitation_probabilities) else 0,
                 "rain": (sliced_rain[i]) if i < len(sliced_rain) else 0,
-                "icon": self.get_plugin_dir(f"icons/{icon_name}.png")
+                "icon": self.get_icon_path(icon_name)
             }
             hourly.append(hour_forecast)
         return hourly
@@ -535,7 +543,7 @@ class Weather(BasePlugin):
                 "label": "Sunrise",
                 "measurement": self.format_time(sunrise_dt, time_format, include_am_pm=False),
                 "unit": "" if time_format == "24h" else sunrise_dt.strftime('%p'),
-                "icon": self.get_plugin_dir('icons/sunrise.png')
+                "icon": self.get_icon_path('sunrise')
             })
         else:
             logger.error(f"Sunrise not found in OpenWeatherMap response, this is expected for polar areas in midnight sun and polar night periods.")
@@ -547,7 +555,7 @@ class Weather(BasePlugin):
                 "label": "Sunset",
                 "measurement": self.format_time(sunset_dt, time_format, include_am_pm=False),
                 "unit": "" if time_format == "24h" else sunset_dt.strftime('%p'),
-                "icon": self.get_plugin_dir('icons/sunset.png')
+                "icon": self.get_icon_path('sunset')
             })
         else:
             logger.error(f"Sunset not found in OpenWeatherMap response, this is expected for polar areas in midnight sun and polar night periods.")
@@ -558,7 +566,7 @@ class Weather(BasePlugin):
             "label": "Wind",
             "measurement": weather.get('current', {}).get("wind_speed"),
             "unit": UNITS[units]["speed"],
-            "icon": self.get_plugin_dir('icons/wind.png'),
+            "icon": self.get_icon_path('wind'),
             "arrow": wind_arrow
         })
 
@@ -566,21 +574,21 @@ class Weather(BasePlugin):
             "label": "Humidity",
             "measurement": weather.get('current', {}).get("humidity"),
             "unit": '%',
-            "icon": self.get_plugin_dir('icons/humidity.png')
+            "icon": self.get_icon_path('humidity')
         })
 
         data_points.append({
             "label": "Pressure",
             "measurement": weather.get('current', {}).get("pressure"),
             "unit": 'hPa',
-            "icon": self.get_plugin_dir('icons/pressure.png')
+            "icon": self.get_icon_path('pressure')
         })
 
         data_points.append({
             "label": "UV Index",
             "measurement": weather.get('current', {}).get("uvi"),
             "unit": '',
-            "icon": self.get_plugin_dir('icons/uvi.png')
+            "icon": self.get_icon_path('uvi')
         })
 
         visibility = weather.get('current', {}).get("visibility")
@@ -599,7 +607,7 @@ class Weather(BasePlugin):
             "label": "Visibility",
             "measurement": visibility_str,
             "unit": UNITS[units]["distance"],
-            "icon": self.get_plugin_dir('icons/visibility.png')
+            "icon": self.get_icon_path('visibility')
         })
 
         aqi = air_quality.get('list', [])[0].get("main", {}).get("aqi")
@@ -607,7 +615,7 @@ class Weather(BasePlugin):
             "label": "Air Quality",
             "measurement": aqi,
             "unit": ["Good", "Fair", "Moderate", "Poor", "Very Poor"][int(aqi)-1],
-            "icon": self.get_plugin_dir('icons/aqi.png')
+            "icon": self.get_icon_path('aqi')
         })
 
         return data_points
@@ -629,7 +637,7 @@ class Weather(BasePlugin):
                 "label": "Sunrise",
                 "measurement": self.format_time(sunrise_dt, time_format, include_am_pm=False),
                 "unit": "" if time_format == "24h" else sunrise_dt.strftime('%p'),
-                "icon": self.get_plugin_dir('icons/sunrise.png')
+                "icon": self.get_icon_path('sunrise')
             })
         else:
             logger.error(f"Sunrise not found in Open-Meteo response, this is expected for polar areas in midnight sun and polar night periods.")
@@ -642,7 +650,7 @@ class Weather(BasePlugin):
                 "label": "Sunset",
                 "measurement": self.format_time(sunset_dt, time_format, include_am_pm=False),
                 "unit": "" if time_format == "24h" else sunset_dt.strftime('%p'),
-                "icon": self.get_plugin_dir('icons/sunset.png')
+                "icon": self.get_icon_path('sunset')
             })
         else:
             logger.error(f"Sunset not found in Open-Meteo response, this is expected for polar areas in midnight sun and polar night periods.")
@@ -654,7 +662,7 @@ class Weather(BasePlugin):
         wind_unit = UNITS[units]["speed"]
         data_points.append({
             "label": "Wind", "measurement": wind_speed, "unit": wind_unit,
-            "icon": self.get_plugin_dir('icons/wind.png'), "arrow": wind_arrow
+            "icon": self.get_icon_path('wind'), "arrow": wind_arrow
         })
 
         # Humidity
@@ -671,7 +679,7 @@ class Weather(BasePlugin):
                 continue
         data_points.append({
             "label": "Humidity", "measurement": current_humidity, "unit": '%',
-            "icon": self.get_plugin_dir('icons/humidity.png')
+            "icon": self.get_icon_path('humidity')
         })
 
         # Pressure
@@ -688,7 +696,7 @@ class Weather(BasePlugin):
                 continue
         data_points.append({
             "label": "Pressure", "measurement": current_pressure, "unit": 'hPa',
-            "icon": self.get_plugin_dir('icons/pressure.png')
+            "icon": self.get_icon_path('pressure')
         })
 
         # UV Index
@@ -705,7 +713,7 @@ class Weather(BasePlugin):
                 continue
         data_points.append({
             "label": "UV Index", "measurement": current_uv_index, "unit": '',
-            "icon": self.get_plugin_dir('icons/uvi.png')
+            "icon": self.get_icon_path('uvi')
         })
 
         # Visibility
@@ -734,7 +742,7 @@ class Weather(BasePlugin):
             "label": "Visibility", 
             "measurement": visibility_str, 
             "unit": UNITS[units]["distance"],
-            "icon": self.get_plugin_dir('icons/visibility.png')
+            "icon": self.get_icon_path('visibility')
         })
 
         # Air Quality
@@ -754,7 +762,7 @@ class Weather(BasePlugin):
             scale = ["Good","Fair","Moderate","Poor","Very Poor","Ext Poor"][min(current_aqi//20,5)]
         data_points.append({
             "label": "Air Quality", "measurement": current_aqi,
-            "unit": scale, "icon": self.get_plugin_dir('icons/aqi.png')
+            "unit": scale, "icon": self.get_icon_path('aqi')
         })
 
         return data_points
@@ -1010,11 +1018,23 @@ class Weather(BasePlugin):
         try:
             code = int(symbol_code)
         except Exception:
-            return self.get_plugin_dir("icons/01d.png")
+            return self.get_icon_path("01d")
+
+        # Prefer official MeteoSwiss SVG icons (downloaded by install/download_icons.sh).
+        # Day codes: 1-42 stored as msw_{code}.svg
+        # Night codes: 101-142 stored as msw_{code}.svg
+        # If not available, fall back through METEOSWISS_ICON_MAP to bundled icons.
+        msw_code = code if is_day else (code + 100 if code <= 42 else code)
+        msw_svg = self.get_plugin_dir(f"icons/msw_{msw_code}.svg")
+        import os as _os
+        if _os.path.isfile(msw_svg):
+            return msw_svg
+
+        # Fallback: internal OWM-style icon
         icon = METEOSWISS_ICON_MAP.get(code, "04d")
         if not is_day:
             icon = METEOSWISS_ICON_NIGHT_MAP.get(icon, icon)
-        return self.get_plugin_dir(f"icons/{icon}.png")
+        return self.get_icon_path(icon)
 
     def _convert_temperature(self, value_c, units):
         if value_c is None:
@@ -1266,14 +1286,14 @@ class Weather(BasePlugin):
                 "label": "Sunrise",
                 "measurement": self.format_time(sunrise, time_format, include_am_pm=False),
                 "unit": "" if time_format == "24h" else sunrise.strftime('%p'),
-                "icon": self.get_plugin_dir('icons/sunrise.png')
+                "icon": self.get_icon_path('sunrise')
             })
         if sunset:
             data_points.append({
                 "label": "Sunset",
                 "measurement": self.format_time(sunset, time_format, include_am_pm=False),
                 "unit": "" if time_format == "24h" else sunset.strftime('%p'),
-                "icon": self.get_plugin_dir('icons/sunset.png')
+                "icon": self.get_icon_path('sunset')
             })
 
         wind_speed = self._convert_wind_speed(current.get("wind_kmh"), units)
@@ -1285,7 +1305,7 @@ class Weather(BasePlugin):
                 "label": "Wind",
                 "measurement": round(wind_speed, 1),
                 "unit": wind_unit,
-                "icon": self.get_plugin_dir('icons/wind.png'),
+                "icon": self.get_icon_path('wind'),
                 "arrow": wind_arrow
             })
 
@@ -1295,7 +1315,7 @@ class Weather(BasePlugin):
                 "label": "Humidity",
                 "measurement": round(humidity, 0),
                 "unit": '%',
-                "icon": self.get_plugin_dir('icons/humidity.png')
+                "icon": self.get_icon_path('humidity')
             })
 
         pressure = current.get("pressure")
@@ -1304,7 +1324,7 @@ class Weather(BasePlugin):
                 "label": "Pressure",
                 "measurement": round(pressure, 1),
                 "unit": 'hPa',
-                "icon": self.get_plugin_dir('icons/pressure.png')
+                "icon": self.get_icon_path('pressure')
             })
 
         template_params = {

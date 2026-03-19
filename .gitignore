@@ -175,3 +175,6 @@ mock_display_output/
 /src/static/scripts/chart.js
 /src/static/scripts/calendar.min.js
 /src/static/styles/select2.min.css
+
+# MeteoSwiss official icons — downloaded at install time, not redistributable
+/src/plugins/weather/icons/msw_*.svg
