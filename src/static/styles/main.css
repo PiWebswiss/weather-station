@@ -1,0 +1,985 @@
+@font-face {
+  font-family: "Jost";
+  src: url("../fonts/Jost.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Jost";
+  src: url("../fonts/Jost-SemiBold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Napoli";
+  src: url("../fonts/Napoli.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --bg: #f8f4ee;
+  --bg-2: #efe6dc;
+  --card: #fffdf8;
+  --card-2: #f9f3ea;
+  --ink: #1b1a18;
+  --muted: #6b6258;
+  --accent: #2f6f6a;
+  --accent-2: #c4683b;
+  --accent-soft: rgba(47, 111, 106, 0.12);
+  --border: rgba(27, 26, 24, 0.12);
+  --shadow: 0 18px 40px rgba(26, 18, 12, 0.12);
+  --radius: 16px;
+  --radius-lg: 22px;
+  --radius-sm: 12px;
+  --radius-xl: 28px;
+  --focus: rgba(47, 111, 106, 0.25);
+}
+
+[data-theme="dark"] {
+  --bg: #141311;
+  --bg-2: #1c1a17;
+  --card: #1d1a17;
+  --card-2: #221e1a;
+  --ink: #f4efe7;
+  --muted: #b5a89b;
+  --accent: #8cc7bf;
+  --accent-2: #f0a46b;
+  --accent-soft: rgba(140, 199, 191, 0.18);
+  --border: rgba(244, 239, 231, 0.12);
+  --shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
+  --focus: rgba(140, 199, 191, 0.3);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: "Jost", "Segoe UI", sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(900px 520px at 12% -12%, rgba(47, 111, 106, 0.12), transparent 60%),
+    radial-gradient(700px 420px at 110% 2%, rgba(196, 104, 59, 0.12), transparent 60%),
+    linear-gradient(180deg, var(--bg), var(--bg-2));
+  min-height: 100vh;
+  line-height: 1.55;
+}
+
+body {
+  padding: 24px;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.frame {
+  max-width: 1120px;
+  margin: 0 auto;
+  background: var(--card);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  padding: 28px;
+  animation: fade-up 0.6s ease-out both;
+  position: relative;
+  overflow: hidden;
+}
+
+.frame::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.header h1 {
+  font-family: "Napoli", "Jost", sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.8px;
+  font-size: 30px;
+  margin: 0;
+}
+
+.settings-button,
+.header-button,
+.action-button,
+button,
+input[type="submit"] {
+  border: 0;
+  border-radius: 14px;
+  padding: 10px 16px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+  box-shadow: 0 10px 22px rgba(47, 111, 106, 0.25);
+}
+
+.settings-button {
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--border);
+  box-shadow: none;
+  padding: 9px 12px;
+  border-radius: 12px;
+}
+
+.dark-mode-toggle::before {
+  content: "☾";
+  font-size: 16px;
+  display: inline-block;
+}
+
+[data-theme="dark"] .dark-mode-toggle::before {
+  content: "☀";
+}
+
+.settings-button:hover,
+.header-button:hover,
+.action-button:hover,
+button:hover {
+  transform: translateY(-1px);
+}
+
+.action-button.compact {
+  padding: 8px 12px;
+  font-size: 0.9rem;
+}
+
+.icon-image {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+
+.image-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: var(--card-2);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  padding: 18px;
+}
+
+.image-container img {
+  max-width: 100%;
+  border-radius: 10px;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+}
+
+.separator {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border), transparent);
+  margin: 20px 0;
+}
+
+.plugins-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.plugins-title {
+  font-family: "Napoli", "Jost", sans-serif;
+  font-size: 20px;
+  margin: 0;
+}
+
+.plugins-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.sort-toggle,
+.view-toggle {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--ink);
+  box-shadow: none;
+}
+
+.sort-toggle.active {
+  background: var(--accent-2);
+  color: #fff;
+}
+
+.sort-hint {
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+}
+
+.sort-hint.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.plugins-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 16px;
+}
+
+.plugins-container.list-view {
+  grid-template-columns: 1fr;
+}
+
+.plugin-item {
+  background: linear-gradient(180deg, var(--card), var(--card-2));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.plugin-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+  border-color: rgba(47, 111, 106, 0.35);
+}
+
+.plugin-name {
+  font-weight: 600;
+}
+
+.plugins-container.sorting .plugin-item {
+  cursor: grab;
+}
+
+.plugin-item.dragging {
+  opacity: 0.6;
+}
+
+.plugin-item.drag-over {
+  border-color: var(--accent);
+}
+
+.app-header {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.title-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.app-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  padding: 6px;
+  background: var(--card-2);
+  border: 1px solid var(--border);
+}
+
+.app-title {
+  margin: 0;
+  font-family: "Napoli", "Jost", sans-serif;
+  font-size: 26px;
+  letter-spacing: 0.6px;
+}
+
+.api-key-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #8a3f22;
+  background: rgba(196, 104, 59, 0.14);
+  border: 1px solid rgba(196, 104, 59, 0.3);
+}
+
+[data-theme="dark"] .api-key-label {
+  color: #f3d1b9;
+  background: rgba(240, 164, 107, 0.18);
+  border-color: rgba(240, 164, 107, 0.4);
+}
+
+.back-button {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px 12px;
+  box-shadow: none;
+}
+
+.buttons-container {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.form-group {
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group.nowrap {
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.form-label {
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.settings-form {
+  display: grid;
+  gap: 16px;
+}
+
+.settings-container,
+#settings-container {
+  display: grid;
+  gap: 16px;
+}
+
+.settings-container > .form-group,
+#settings-container > .form-group,
+.settings-container > .collapsible,
+#settings-container > .collapsible {
+  background: var(--card-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.04);
+}
+
+.form-input,
+select,
+input[type="text"],
+input[type="number"],
+input[type="password"] {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 1rem;
+  background: #fff;
+}
+
+.form-input:focus-visible,
+select:focus-visible,
+input[type="text"]:focus-visible,
+input[type="number"]:focus-visible,
+input[type="password"]:focus-visible,
+input[type="file"]:focus-visible,
+input[type="color"]:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: var(--accent);
+  width: 16px;
+  height: 16px;
+}
+
+.file-upload-label {
+  cursor: pointer;
+  text-align: center;
+  border-style: dashed;
+  background: var(--card);
+}
+
+.file-upload-input {
+  display: none;
+}
+
+.file-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+.remove-btn {
+  background: var(--accent-2);
+  border-radius: 8px;
+  padding: 4px 8px;
+  box-shadow: none;
+}
+
+.color-picker {
+  width: 64px;
+  height: 40px;
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(86px, 1fr));
+  gap: 10px;
+}
+
+.image-option {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.image-option.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.image-option img {
+  max-width: 100%;
+  border-radius: 8px;
+}
+
+.collapsible {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--card-2);
+}
+
+.collapsible-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  background: transparent;
+  font-weight: 600;
+  color: var(--ink);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.collapsible-header.active {
+  background: rgba(47, 111, 106, 0.08);
+}
+
+.collapsible-content {
+  padding: 12px 14px;
+  border-top: 1px solid var(--border);
+}
+
+[class~="hidden"] {
+  display: none !important;
+}
+
+.warning-text {
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #7a3b1c;
+  background: rgba(196, 104, 59, 0.12);
+  border: 1px solid rgba(196, 104, 59, 0.35);
+}
+
+[data-theme="dark"] .warning-text {
+  color: #f3d1b9;
+  background: rgba(240, 164, 107, 0.16);
+  border: 1px solid rgba(240, 164, 107, 0.4);
+}
+
+[data-theme="dark"] .form-input,
+[data-theme="dark"] select,
+[data-theme="dark"] input[type="text"],
+[data-theme="dark"] input[type="number"],
+[data-theme="dark"] input[type="password"] {
+  background: var(--card-2);
+  color: var(--ink);
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(3px);
+  z-index: 99;
+}
+
+.modal-content {
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  max-width: 720px;
+  margin: 8vh auto;
+  padding: 22px;
+  box-shadow: var(--shadow);
+  animation: fade-up 0.35s ease-out both;
+}
+
+.close-button {
+  float: right;
+  cursor: pointer;
+  font-size: 22px;
+  color: var(--muted);
+}
+
+.loading-indicator {
+  border: 3px solid rgba(0,0,0,0.1);
+  border-top: 3px solid var(--accent);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 720px) {
+  body {
+    padding: 12px;
+  }
+  .frame {
+    padding: 18px;
+  }
+  .header {
+    gap: 8px;
+  }
+  .plugins-container {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   WordPress-like Admin Layout
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+body.wp-admin {
+  padding: 0;
+  margin: 0;
+  background: var(--bg);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Top Admin Bar ──────────────────────────────────────────────────────── */
+.adminbar {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  height: 46px;
+  background: var(--ink);
+  color: rgba(255,255,255,0.92);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  gap: 16px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+}
+
+[data-theme="dark"] .adminbar {
+  background: #0c0b09;
+  border-bottom: 1px solid var(--border);
+}
+
+.adminbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "Napoli", "Jost", sans-serif;
+  font-size: 15px;
+  letter-spacing: 0.4px;
+  color: #fff;
+}
+
+.adminbar-brand svg {
+  opacity: 0.85;
+}
+
+.adminbar-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.adminbar-link {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: rgba(255,255,255,0.75);
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 6px 10px;
+  border-radius: 8px;
+  transition: background 0.15s, color 0.15s;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 0.2px;
+}
+
+.adminbar-link:hover {
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+  transform: none;
+}
+
+.adminbar-link.dark-mode-toggle::before {
+  content: "☾";
+  font-size: 15px;
+}
+
+[data-theme="dark"] .adminbar-link.dark-mode-toggle::before {
+  content: "☀";
+}
+
+/* ── Two-column layout ──────────────────────────────────────────────────── */
+.wp-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  flex: 1;
+  min-height: calc(100vh - 46px);
+}
+
+/* ── Sidebar ────────────────────────────────────────────────────────────── */
+.wp-sidebar {
+  background: var(--card);
+  border-right: 1px solid var(--border);
+  padding: 20px 0 40px;
+  position: sticky;
+  top: 46px;
+  height: calc(100vh - 46px);
+  overflow-y: auto;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 12px;
+}
+
+.sidebar-section-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+  padding: 14px 8px 4px;
+  margin-top: 4px;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+  border: 1px solid transparent;
+}
+
+.sidebar-link svg {
+  flex-shrink: 0;
+  opacity: 0.65;
+}
+
+.sidebar-link:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: rgba(47,111,106,0.15);
+}
+
+.sidebar-link:hover svg { opacity: 1; }
+
+.sidebar-link.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+  border-color: rgba(47,111,106,0.2);
+}
+
+.sidebar-link.active svg { opacity: 1; }
+
+/* ── Main content area ──────────────────────────────────────────────────── */
+.wp-main {
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  background: var(--bg);
+}
+
+/* ── Cards ──────────────────────────────────────────────────────────────── */
+.wp-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+  animation: fade-up 0.45s ease-out both;
+}
+
+.wp-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card-2);
+}
+
+.wp-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "Napoli", "Jost", sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+.wp-card-title svg { opacity: 0.7; }
+
+/* ── Preview card ───────────────────────────────────────────────────────── */
+.preview-card .image-container {
+  border: none;
+  border-radius: 0;
+  background: var(--card-2);
+  padding: 24px;
+}
+
+.preview-card .preview-img {
+  max-width: 100%;
+  border-radius: var(--radius);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.12);
+}
+
+.preview-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: pulse-dot 2.5s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+
+/* ── Ghost button ───────────────────────────────────────────────────────── */
+.wp-btn-ghost {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  box-shadow: none;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.wp-btn-ghost:hover {
+  background: var(--card-2);
+  border-color: var(--accent);
+  transform: none;
+}
+
+.wp-btn-ghost.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+/* ── Plugin items (WordPress-like rows) ─────────────────────────────────── */
+.plugins-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0;
+  padding: 8px 12px;
+}
+
+.plugin-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  color: var(--ink);
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+  position: relative;
+}
+
+.plugin-item:hover {
+  background: var(--accent-soft);
+  border-color: rgba(47,111,106,0.2);
+  transform: none;
+  box-shadow: none;
+}
+
+.plugin-icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--card-2);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.plugin-icon-img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+}
+
+.plugin-name {
+  flex: 1;
+  font-weight: 500;
+  font-size: 0.92rem;
+}
+
+.plugin-arrow {
+  opacity: 0.3;
+  flex-shrink: 0;
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.plugin-item:hover .plugin-arrow {
+  opacity: 0.7;
+  transform: translateX(2px);
+}
+
+.plugins-container.list-view {
+  grid-template-columns: 1fr;
+}
+
+.plugins-container.sorting .plugin-item { cursor: grab; }
+.plugin-item.dragging { opacity: 0.5; }
+.plugin-item.drag-over { border-color: var(--accent); background: var(--accent-soft); }
+
+/* ── Responsive: collapse sidebar on mobile ─────────────────────────────── */
+@media (max-width: 768px) {
+  .wp-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .wp-sidebar {
+    position: static;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 12px;
+  }
+
+  .sidebar-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .sidebar-section-label { display: none; }
+
+  .sidebar-link {
+    padding: 7px 10px;
+    font-size: 0.82rem;
+  }
+
+  .wp-main { padding: 16px; }
+}

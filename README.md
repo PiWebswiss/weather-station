@@ -57,7 +57,7 @@ To install InkyPi, follow these steps:
     ```
 2. Navigate to the project directory:
     ```bash
-    cd InkyPi
+    cd weather-station
     ```
 3. Run the installation script with sudo:
     ```bash

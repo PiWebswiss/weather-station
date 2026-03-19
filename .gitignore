@@ -169,6 +169,9 @@ mock_display_output/
 # IDE files
 .idea
 
-# Static Files added by install/update_vendors.sh
-/src/static/scripts/
-/src/static/styles/
+# Vendor files downloaded by install/update_vendors.sh (not committed to git)
+/src/static/scripts/jquery.min.js
+/src/static/scripts/select2.min.js
+/src/static/scripts/chart.js
+/src/static/scripts/calendar.min.js
+/src/static/styles/select2.min.css
