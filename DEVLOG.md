@@ -541,6 +541,60 @@ All fallbacks are automatic - the display is never left in an undefined state. I
 
 *Section added: 2026-03-19*
 
+
+---
+
+## 8. Bug Fixes — Partial Refresh & README (2026-03-19)
+
+Three bugs were found during code review immediately after implementing section 7, plus a README typo.
+
+### Bug 1 — waveshare_display.py: wrong Init() call (functional bug)
+
+**File:** src/display/waveshare_display.py
+
+**Problem:** display_partial_image() called epd.Init(epd.PART_UPDATE) directly. Some Waveshare drivers
+use lowercase init() instead of Init(). The existing self.epd_display_init already resolves
+this casing at startup. Calling epd.Init() directly would raise AttributeError on those drivers,
+caught by except Exception, meaning partial refresh would silently fall back every time.
+
+**Fix:**
+    Before: epd.Init(epd.PART_UPDATE)
+    After:  self.epd_display_init(epd.PART_UPDATE)
+
+### Bug 2 — display_manager.py: partial image overwrote admin preview (UX bug)
+
+**File:** src/display/display_manager.py
+
+**Problem:** display_partial_image() was saving the partial-zone screenshot to current_image_file
+(e.g. only the temperature zone). The admin web UI uses current_image_file for the live preview,
+so it would show a nearly blank screen after a partial refresh.
+
+**Fix:** Removed the image.save() call from display_partial_image(). The full-zone image saved
+by the previous full refresh is preserved as the preview, which is the correct behavior.
+
+### Bug 3 — inky_display.py: narrow except clause (safety breadth)
+
+**File:** src/display/inky_display.py
+
+**Problem:** The except clause only caught (ImportError, TypeError, ValueError).
+inspect.signature() can raise AttributeError on some C-extension or wrapped callables.
+If that happened, the exception would propagate up uncaught and abort the refresh cycle.
+
+**Fix:**
+    Before: except (ImportError, TypeError, ValueError) as e:
+    After:  except Exception as e:
+
+This guarantees the fallback to full refresh fires under all circumstances.
+
+### README typo fix
+
+**File:** README.md, line 106
+
+The Uninstall section had "To install InkyPi" (copy-paste error from the original upstream project).
+Fixed to "To uninstall InkyPi".
+
+*Section added: 2026-03-19*
+
 ---
 
 *Last updated: 2026-03-19*
