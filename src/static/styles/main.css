@@ -42,18 +42,18 @@
 }
 
 [data-theme="dark"] {
-  --bg: #141311;
-  --bg-2: #1c1a17;
-  --card: #1d1a17;
-  --card-2: #221e1a;
-  --ink: #f4efe7;
-  --muted: #b5a89b;
-  --accent: #8cc7bf;
-  --accent-2: #f0a46b;
-  --accent-soft: rgba(140, 199, 191, 0.18);
-  --border: rgba(244, 239, 231, 0.12);
-  --shadow: 0 16px 36px rgba(0, 0, 0, 0.35);
-  --focus: rgba(140, 199, 191, 0.3);
+  --bg: #1c1c1e;
+  --bg-2: #242426;
+  --card: #252528;
+  --card-2: #2d2d30;
+  --ink: #f2f2f7;
+  --muted: #aeaeb2;
+  --accent: #5ac8c4;
+  --accent-2: #f5a76e;
+  --accent-soft: rgba(90, 200, 196, 0.15);
+  --border: rgba(255, 255, 255, 0.1);
+  --shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
+  --focus: rgba(90, 200, 196, 0.3);
 }
 
 * {
@@ -607,6 +607,39 @@ input[type="radio"] {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* ── Toast notifications ──────────────────────────────────────────────── */
+.toast-notification {
+  position: fixed;
+  top: 62px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 280px;
+  max-width: 420px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  animation: toast-slide-in 0.3s cubic-bezier(.22,1,.36,1);
+}
+.toast-notification.success { border-left: 4px solid #34c759; }
+.toast-notification.failure { border-left: 4px solid #ff3b30; }
+.toast-icon { font-size: 18px; flex-shrink: 0; }
+.toast-message { flex: 1; margin: 0; font-size: .9rem; line-height: 1.4; }
+.toast-close {
+  background: none; border: none; box-shadow: none; padding: 0 4px;
+  color: var(--muted); font-size: 18px; cursor: pointer; flex-shrink: 0;
+  line-height: 1;
+}
+.toast-close:hover { color: var(--ink); transform: none; }
+@keyframes toast-slide-in {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
 @media (max-width: 720px) {
   body {
     padding: 12px;
@@ -652,7 +685,7 @@ body.wp-admin {
 }
 
 [data-theme="dark"] .adminbar {
-  background: #0c0b09;
+  background: #111113;
   border-bottom: 1px solid var(--border);
 }
 
