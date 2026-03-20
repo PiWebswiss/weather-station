@@ -1,369 +1,483 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 
-<div class="form-group">
-    <label class="form-label">Location: </label>
-    <div class="form-group">
-        <span>Latitude </span>
-        <input readonly type="text" id="latitude" name="latitude" class="form-input" />
+<style>
+/* ── Weather settings card sections ─────────────────────────────── */
+.wx-section {
+    background: var(--card-2, #f9f3ea);
+    border: 1px solid var(--border, rgba(0,0,0,.1));
+    border-radius: 14px;
+    padding: 16px 18px;
+    margin-bottom: 14px;
+}
+.wx-section-title {
+    font-weight: 600;
+    font-size: .8rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted, #6b6258);
+    margin: 0 0 12px;
+}
+.wx-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 8px;
+}
+.wx-row:last-child { margin-bottom: 0; }
+.wx-row label.form-label { margin: 0; min-width: 90px; }
+
+/* Location search */
+.loc-search-wrap {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+.loc-search-wrap input {
+    flex: 1;
+}
+#locationSuggestions {
+    list-style: none;
+    margin: 0; padding: 0;
+    background: var(--card, #fff);
+    border: 1px solid var(--border, rgba(0,0,0,.12));
+    border-radius: 10px;
+    overflow: hidden;
+    max-height: 180px;
+    overflow-y: auto;
+}
+#locationSuggestions li {
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: .9rem;
+    border-bottom: 1px solid var(--border, rgba(0,0,0,.07));
+}
+#locationSuggestions li:last-child { border-bottom: none; }
+#locationSuggestions li:hover { background: var(--accent-soft, rgba(47,111,106,.1)); }
+#locationSuggestions li.no-results { color: var(--muted); cursor: default; }
+
+.latlon-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+.latlon-row .latlon-field {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-2, #efe6dc);
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-size: .85rem;
+    color: var(--muted);
+}
+.latlon-row .latlon-field span { font-weight: 600; color: var(--ink); }
+
+/* Toggle switch checkboxes */
+.toggle-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 8px;
+    margin-top: 4px;
+}
+.toggle-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-2, #efe6dc);
+    border-radius: 10px;
+    padding: 8px 12px;
+    cursor: pointer;
+    user-select: none;
+    transition: background .15s;
+}
+.toggle-item:hover { background: var(--accent-soft, rgba(47,111,106,.12)); }
+.toggle-item input[type=checkbox] { accent-color: var(--accent, #2f6f6a); width:16px; height:16px; flex-shrink:0; }
+.toggle-item-label { font-size: .88rem; }
+
+/* loc buttons */
+.loc-btn-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+.loc-btn-row .action-button { padding:8px 14px; font-size:.88rem; }
+
+#gpsStatus { font-size:.83em; margin-top:6px; }
+</style>
+
+<!-- ── SECTION 1: Location ───────────────────────────────────────── -->
+<div class="wx-section">
+    <p class="wx-section-title">📍 Location</p>
+
+    <!-- City search -->
+    <div class="loc-search-wrap">
+        <input type="text" id="citySearch" class="form-input" placeholder="Search city or address…" autocomplete="off" />
+        <button type="button" id="citySearchBtn" class="action-button compact">Search</button>
     </div>
-    <div class="form-group">
-        <span>Longitude </span>
-        <input readonly type="text" id="longitude" name="longitude" class="form-input" />
+    <ul id="locationSuggestions" style="display:none;"></ul>
+
+    <!-- GPS + Map -->
+    <div class="loc-btn-row">
+        <button type="button" id="openMap" class="action-button compact">🗺 Pick on map</button>
+        <button type="button" id="gpsDetect" class="action-button compact">📍 Use GPS</button>
     </div>
-    <button type="button" id="openMap" class="action-button compact">Select Location</button>
-    <button type="button" id="gpsDetect" class="action-button compact">📍 Detect via GPS</button>
-    <div id="gpsStatus" style="font-size:0.85em; margin-top:4px; color:#555;"></div>
+    <div id="gpsStatus"></div>
+
+    <!-- Lat/Lon display -->
+    <div class="latlon-row">
+        <div class="latlon-field">Lat <span id="latDisplay">—</span></div>
+        <div class="latlon-field">Lon <span id="lonDisplay">—</span></div>
+    </div>
+    <!-- Hidden actual inputs submitted with form -->
+    <input type="hidden" id="latitude" name="latitude" />
+    <input type="hidden" id="longitude" name="longitude" />
 </div>
 
-<!-- ── GPS permission help modal ────────────────────────────────────────── -->
-<div id="gpsPermissionModal" class="modal" style="display:none;">
-    <div class="modal-content" style="max-width:460px;">
-        <span class="close-button" onclick="closeModal('gpsPermissionModal')">×</span>
-        <h2>GPS Location — Enable Permission</h2>
-        <div class="separator"></div>
-
-        <p style="margin:12px 0 8px; font-size:.9em;">
-            Your browser blocked location access. Follow the steps for your browser below, then click <strong>Detect via GPS</strong> again.<br><br>
-            <strong>Alternative:</strong> Use <strong>Select Location</strong> to manually drag the map marker to your exact position — no GPS needed.
-        </p>
-
-        <p style="margin:10px 0 4px; font-weight:bold; font-size:.9em;">Chrome (Desktop / Android)</p>
-        <ol style="font-size:.85em; margin:0 0 10px 18px; line-height:1.7;">
-            <li>Click the lock icon in the address bar</li>
-            <li>Site settings → <strong>Location</strong> → <strong>Allow</strong></li>
-            <li>Reload the page and try again</li>
-        </ol>
-
-        <p style="margin:10px 0 4px; font-weight:bold; font-size:.9em;">Safari (iPhone / iPad)</p>
-        <ol style="font-size:.85em; margin:0 0 10px 18px; line-height:1.7;">
-            <li>Settings → Privacy → Location Services → <strong>Safari</strong> → While Using</li>
-        </ol>
-
-        <p style="margin:10px 0 4px; font-weight:bold; font-size:.9em;">Firefox</p>
-        <ol style="font-size:.85em; margin:0 0 10px 18px; line-height:1.7;">
-            <li>Menu → Settings → Site Permissions → Location → Allow this site</li>
-        </ol>
-
-        <button class="action-button" onclick="closeModal('gpsPermissionModal')">Close</button>
-    </div>
-</div>
-
-<div class="form-group">
-    <label for="weatherProvider" class="form-label">Weather Provider:</label>
-    <select id="weatherProvider" name="weatherProvider" class="form-input" onchange="updateTitleOptions(this.value)">
-        <option value="OpenMeteo">Open-Meteo</option>
-        <option value="OpenWeatherMap">OpenWeatherMap</option>
-        <option value="MeteoSwiss">MeteoSwiss (Open Data)</option>
-    </select>
-
-    <label for="units" class="form-label">Units:</label>
-    <select id="units" name="units" class="form-input">
-        <option value="imperial">Imperial (°F)</option>
-        <option value="metric">Metric (°C)</option>
-        <option value="standard">Standard (K)</option>
-    </select>
-</div>
-
-<div class="form-group" id="titleOptionWrapper">
-    <label class="form-label">Title:</label>
-
-    <div class="form-group">
-        <input type="radio" id="title-location" name="titleSelection" value="location">
-        <label for="title-location">Location</label>
-
-        <input type="radio" id="title-custom" name="titleSelection" value="custom">
-        <label for="title-custom">Custom</label>
-        <input type="text" id="customTitle" name="customTitle" class="form-input" placeholder="Type something..." />
-    </div>
-</div>
-
-<div class="form-group">
-    <label for="displayMetrics" class="form-label">Display: </label>
-
-    <div class="form-group">
-      <input type="checkbox" id="displayRefreshTime" name="displayRefreshTime" onclick="this.value=this.checked ? 'true' : 'false';">
-      <span>Refresh Time</span>
-    </div>
-
-    <div class="form-group">
-        <input type="checkbox" id="displayMetrics" name="displayMetrics" onclick="this.value=this.checked ? 'true' : 'false';">
-        <span>Metrics</span>
-    </div>
-
-    <div class="form-group">
-        <input type="checkbox" id="displayGraph" name="displayGraph" onclick="this.value=this.checked ? 'true' : 'false';">
-        <span>Weather Graph</span>
-    </div>
-
-    <div class="form-group">
-        <input type="checkbox" id="displayRain" name="displayRain" onclick="this.value=this.checked ? 'true' : 'false';">
-        <span>Rain Amount</span>
-    </div>
-	
-
-    <div class="form-group">
-        <input type="checkbox" id="moonPhase" name="moonPhase" onclick="this.value=this.checked ? 'true' : 'false';">
-        <span>Moon Phase</span>
-    </div>
-	
-	<div class="form-group">
-		<input type="checkbox" id="displayGraphIcons" name="displayGraphIcons" onclick="this.value=this.checked ? 'true' : 'false';">
-		<span>Graph icons every</span>
-		<select id="graphIconStep" name="graphIconStep" class="form-input">
-			<option value="1">1</option>
-			<option value="2" selected>2</option>
-			<option value="4">4</option>
-			<option value="6">6</option>
-			<option value="12">12</option>
-		</select>
-		<span>hours</span>
-	</div>
-
-    <div class="form-group">
-        <input type="checkbox" id="displayForecast" name="displayForecast" onclick="this.value=this.checked ? 'true' : 'false';">
-        <span>Forecast</span>
-        <select id="forecastDays" name="forecastDays" class="form-input">
-            <option value=3>3</option>
-            <option value=5>5</option>
-            <option value=7>7</option>
+<!-- ── SECTION 2: Provider & Units ──────────────────────────────── -->
+<div class="wx-section">
+    <p class="wx-section-title">🌐 Provider &amp; Units</p>
+    <div class="wx-row">
+        <label for="weatherProvider" class="form-label">Provider</label>
+        <select id="weatherProvider" name="weatherProvider" class="form-input" onchange="updateTitleOptions(this.value)">
+            <option value="OpenMeteo">Open-Meteo (free, no key)</option>
+            <option value="OpenWeatherMap">OpenWeatherMap (API key required)</option>
+            <option value="MeteoSwiss">MeteoSwiss (free, Switzerland only)</option>
         </select>
-        <span>days</span>
     </div>
-
-    <div class="form-group">
-        <label for="weatherTimeZone" class="form-label">Time Zone:</label>
+    <div class="wx-row">
+        <label for="units" class="form-label">Units</label>
+        <select id="units" name="units" class="form-input">
+            <option value="metric">Metric (°C)</option>
+            <option value="imperial">Imperial (°F)</option>
+            <option value="standard">Standard (K)</option>
+        </select>
+    </div>
+    <div class="wx-row" id="titleOptionWrapper">
+        <label class="form-label">Title</label>
+        <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;">
+            <label style="display:flex;align-items:center;gap:6px;">
+                <input type="radio" id="title-location" name="titleSelection" value="location"> Location name
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;">
+                <input type="radio" id="title-custom" name="titleSelection" value="custom"> Custom
+            </label>
+            <input type="text" id="customTitle" name="customTitle" class="form-input" placeholder="e.g. My Home" style="max-width:200px;" />
+        </div>
+    </div>
+    <div class="wx-row" id="tzRow">
+        <label for="weatherTimeZone" class="form-label">Time Zone</label>
         <select id="weatherTimeZone" name="weatherTimeZone" class="form-input">
-            <option value="locationTimeZone">Use Location Time Zone</option>
-            <option value="localTimeZone">Use Local Time Zone</option>
+            <option value="locationTimeZone">Use location timezone</option>
+            <option value="localTimeZone">Use device timezone</option>
         </select>
     </div>
+</div>
 
-    <div class="form-group">
-        <label for="partialZone" class="form-label">Partial Refresh Zone (e-ink):</label>
+<!-- ── SECTION 3: Display Options ───────────────────────────────── -->
+<div class="wx-section">
+    <p class="wx-section-title">🖥 Display Options</p>
+    <div class="toggle-grid">
+        <label class="toggle-item">
+            <input type="checkbox" id="displayRefreshTime" name="displayRefreshTime" onclick="this.value=this.checked?'true':'false';">
+            <span class="toggle-item-label">Refresh time</span>
+        </label>
+        <label class="toggle-item">
+            <input type="checkbox" id="displayMetrics" name="displayMetrics" onclick="this.value=this.checked?'true':'false';">
+            <span class="toggle-item-label">Metrics</span>
+        </label>
+        <label class="toggle-item">
+            <input type="checkbox" id="displayGraph" name="displayGraph" onclick="this.value=this.checked?'true':'false';">
+            <span class="toggle-item-label">Hourly graph</span>
+        </label>
+        <label class="toggle-item">
+            <input type="checkbox" id="displayRain" name="displayRain" onclick="this.value=this.checked?'true':'false';">
+            <span class="toggle-item-label">Rain amount</span>
+        </label>
+        <label class="toggle-item">
+            <input type="checkbox" id="moonPhase" name="moonPhase" onclick="this.value=this.checked?'true':'false';">
+            <span class="toggle-item-label">Moon phase</span>
+        </label>
+    </div>
+
+    <div class="wx-row" style="margin-top:12px;">
+        <label class="form-label" style="display:flex;align-items:center;gap:8px;">
+            <input type="checkbox" id="displayGraphIcons" name="displayGraphIcons" onclick="this.value=this.checked?'true':'false';" style="accent-color:var(--accent);">
+            Graph icons every
+        </label>
+        <select id="graphIconStep" name="graphIconStep" class="form-input" style="width:auto;">
+            <option value="1">1</option>
+            <option value="2" selected>2</option>
+            <option value="4">4</option>
+            <option value="6">6</option>
+            <option value="12">12</option>
+        </select>
+        <span style="color:var(--muted);font-size:.88rem;">hours</span>
+    </div>
+
+    <div class="wx-row">
+        <label class="form-label" style="display:flex;align-items:center;gap:8px;">
+            <input type="checkbox" id="displayForecast" name="displayForecast" onclick="this.value=this.checked?'true':'false';" style="accent-color:var(--accent);">
+            Forecast
+        </label>
+        <select id="forecastDays" name="forecastDays" class="form-input" style="width:auto;">
+            <option value="3">3 days</option>
+            <option value="5">5 days</option>
+            <option value="7">7 days</option>
+        </select>
+    </div>
+</div>
+
+<!-- ── SECTION 4: Advanced ──────────────────────────────────────── -->
+<div class="wx-section">
+    <p class="wx-section-title">⚙ Advanced (e-ink)</p>
+    <div class="wx-row">
+        <label for="partialZone" class="form-label">Partial refresh</label>
         <select id="partialZone" name="partialZone" class="form-input">
-            <option value="all">All zones — full display</option>
-            <option value="temp">Temperature only (fastest update)</option>
+            <option value="all">Full display</option>
+            <option value="temp">Temperature only (fastest)</option>
             <option value="header">Header only (city + date)</option>
             <option value="current">Current weather + metrics</option>
             <option value="graph">Hourly graph only</option>
             <option value="forecast">Forecast only</option>
         </select>
-        <small style="display:block; margin-top:4px; color:#888;">
-            Renders only one zone — ideal for e-ink partial refresh without ghosting. Use "Temperature only" for the fastest updates.
-        </small>
     </div>
-
+    <small style="color:var(--muted);font-size:.8rem;">Renders a single zone for e-ink partial refresh without ghosting.</small>
 </div>
 
+<!-- ── GPS permission help modal ────────────────────────────────── -->
+<div id="gpsPermissionModal" class="modal" style="display:none;">
+    <div class="modal-content" style="max-width:440px;">
+        <span class="close-button" onclick="closeModal('gpsPermissionModal')">×</span>
+        <h2>Enable Location Access</h2>
+        <div class="separator"></div>
+        <p style="margin:12px 0 8px;font-size:.9em;">Your browser blocked location access. Alternatively, use <strong>Search</strong> or <strong>Pick on map</strong> — no GPS needed.</p>
+        <p style="font-weight:bold;font-size:.9em;margin:10px 0 4px;">Chrome</p>
+        <ol style="font-size:.85em;margin:0 0 10px 18px;line-height:1.7;">
+            <li>Click the lock icon → Site settings → Location → Allow</li>
+            <li>Reload and try again</li>
+        </ol>
+        <p style="font-weight:bold;font-size:.9em;margin:10px 0 4px;">Safari (iPhone)</p>
+        <ol style="font-size:.85em;margin:0 0 10px 18px;line-height:1.7;">
+            <li>Settings → Privacy → Location Services → Safari → While Using</li>
+        </ol>
+        <button class="action-button" onclick="closeModal('gpsPermissionModal')">Close</button>
+    </div>
+</div>
+
+<!-- ── Map modal ────────────────────────────────────────────────── -->
 <div id="mapModal" class="modal">
     <div class="modal-content">
         <span class="close-button" onclick="closeModal('mapModal')">×</span>
-        <h2 id="modalTitle">Select Location</h2>
+        <h2>Pick Location on Map</h2>
         <div class="separator"></div>
-        <div id="map" style="width: 100%; height: 200px; margin: 10px 0px;"></div>
-        <button id="closeMap" class="action-button">Save</button>
+        <p style="font-size:.85rem;color:var(--muted);margin:6px 0;">Click anywhere on the map or drag the marker to set your location.</p>
+        <div id="map" style="width:100%;height:300px;margin:10px 0;border-radius:10px;overflow:hidden;"></div>
+        <button id="closeMap" class="action-button">Save Location</button>
     </div>
 </div>
 
 <script>
-
     function updateTitleOptions(provider) {
         const titleLocationRadio = document.getElementById('title-location');
-        const titleLocationLabel = document.querySelector('label[for="title-location"]');
+        const titleLocationLabel = document.querySelector('label[for="title-location"]') || titleLocationRadio.closest('label');
         const titleCustomRadio = document.getElementById('title-custom');
         const customTitleInput = document.getElementById('customTitle');
-        const titleTimeZone = document.getElementById('weatherTimeZone');
-        const titleTimeZoneLabel = document.querySelector('label[for="weatherTimeZone"]');
+        const tzRow = document.getElementById('tzRow');
         const apiKeyLabel = document.querySelector('.api-key-label');
 
         if (provider === 'OpenMeteo') {
-            // Hide or disable "Location" radio option
-            titleLocationRadio.style.display = 'none';
-            titleLocationLabel.style.display = 'none';
             titleLocationRadio.disabled = true;
-            titleTimeZone.style.display = 'none';
-            titleTimeZoneLabel.style.display = 'none';
-            titleTimeZone.disabled = true;
-
-            // Select and enable "Custom"
             titleCustomRadio.checked = true;
-            titleCustomRadio.disabled = false;
-            customTitleInput.disabled = false;
-
-            // Hide API Key required label for Open-Meteo
+            if (tzRow) tzRow.style.display = 'none';
             if (apiKeyLabel) apiKeyLabel.style.display = 'none';
         } else if (provider === 'MeteoSwiss') {
-            // Show and enable both options
-            titleLocationRadio.style.display = '';
-            titleLocationLabel.style.display = '';
             titleLocationRadio.disabled = false;
-
-            titleCustomRadio.disabled = false;
-            customTitleInput.disabled = false;
-
-            titleTimeZone.style.display = '';
-            titleTimeZoneLabel.style.display = '';
-            titleTimeZone.disabled = false;
-
-            // Hide API Key required label for MeteoSwiss
+            if (tzRow) tzRow.style.display = '';
             if (apiKeyLabel) apiKeyLabel.style.display = 'none';
         } else {
-            // Show and enable both options
-            titleLocationRadio.style.display = '';
-            titleLocationLabel.style.display = '';
             titleLocationRadio.disabled = false;
-
-            titleCustomRadio.disabled = false;
-            customTitleInput.disabled = false;
-
-            titleTimeZone.style.display = '';
-            titleTimeZoneLabel.style.display = '';
-            titleTimeZone.disabled = false;
-
-            // Show API Key required label for OpenWeatherMap
+            if (tzRow) tzRow.style.display = '';
             if (apiKeyLabel) apiKeyLabel.style.display = '';
         }
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+        // CartoDB tiles — no Referer restriction
+        const CARTO_TILE_URL = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+        const CARTO_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> contributors &copy; <a href="https://carto.com/">CARTO</a>';
 
-        const OSM_TILE_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-        const $latitude = document.querySelector('#latitude');
-        const $longitude = document.querySelector('#longitude');
-        const $openMap = document.querySelector('#openMap');
-        const $mapModal = document.querySelector('#mapModal');
-        const $closeMap = document.querySelector('#closeMap');
+        const $lat = document.getElementById('latitude');
+        const $lon = document.getElementById('longitude');
+        const $latDisplay = document.getElementById('latDisplay');
+        const $lonDisplay = document.getElementById('lonDisplay');
 
-        let latitude = +$latitude.value;
-        let longitude = +$longitude.value;
-        let zoom = latitude && longitude ? 4.5 : 2.5;
+        function setCoords(lat, lon) {
+            const la = parseFloat(lat).toFixed(5);
+            const lo = parseFloat(lon).toFixed(5);
+            $lat.value = la;
+            $lon.value = lo;
+            $latDisplay.textContent = la;
+            $lonDisplay.textContent = lo;
+        }
+
+        let latitude = parseFloat($lat.value) || 0;
+        let longitude = parseFloat($lon.value) || 0;
         let selectedTitle = 'location';
         let weatherProvider = 'OpenMeteo';
-
         let map, marker;
 
-        $openMap.addEventListener('click', () => {
-            openModal('mapModal')
-            setTimeout(() => {
-                if (!map) {
-                    map = L.map('map').setView([latitude, longitude], zoom);
-                    L.tileLayer(OSM_TILE_URL).addTo(map);
-                    marker = L.marker([latitude, longitude], { draggable: true }).addTo(map);
+        // ── City search (Nominatim) ──────────────────────────────────────
+        const $citySearch = document.getElementById('citySearch');
+        const $suggestions = document.getElementById('locationSuggestions');
 
-                    map.on('click', event => {
-                        marker.setLatLng(event.latlng);
-                    });
+        async function searchCity(query) {
+            if (!query.trim()) return;
+            $suggestions.innerHTML = '<li style="padding:8px 14px;color:var(--muted)">Searching…</li>';
+            $suggestions.style.display = 'block';
+            try {
+                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=6&addressdetails=1`;
+                const r = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+                const results = await r.json();
+                $suggestions.innerHTML = '';
+                if (!results.length) {
+                    $suggestions.innerHTML = '<li class="no-results">No results found</li>';
+                    return;
                 }
-            }, 100);
+                results.forEach(item => {
+                    const li = document.createElement('li');
+                    li.textContent = item.display_name;
+                    li.addEventListener('click', () => {
+                        setCoords(item.lat, item.lon);
+                        $citySearch.value = item.display_name.split(',').slice(0,2).join(',').trim();
+                        $suggestions.style.display = 'none';
+                        // Move map marker if map is open
+                        if (marker) {
+                            marker.setLatLng([parseFloat(item.lat), parseFloat(item.lon)]);
+                            map.setView([parseFloat(item.lat), parseFloat(item.lon)], 10);
+                        }
+                    });
+                    $suggestions.appendChild(li);
+                });
+            } catch(e) {
+                $suggestions.innerHTML = '<li class="no-results">Search failed — check your connection</li>';
+            }
+        }
+
+        document.getElementById('citySearchBtn').addEventListener('click', () => searchCity($citySearch.value));
+        $citySearch.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); searchCity($citySearch.value); } });
+        document.addEventListener('click', e => { if (!$suggestions.contains(e.target) && e.target !== $citySearch) $suggestions.style.display = 'none'; });
+
+        // ── Map ──────────────────────────────────────────────────────────
+        document.getElementById('openMap').addEventListener('click', () => {
+            openModal('mapModal');
+            setTimeout(() => {
+                const lat = parseFloat($lat.value) || 46.8;
+                const lon = parseFloat($lon.value) || 8.2;
+                const zoom = ($lat.value && $lon.value) ? 8 : 5;
+                if (!map) {
+                    map = L.map('map').setView([lat, lon], zoom);
+                    L.tileLayer(CARTO_TILE_URL, { attribution: CARTO_ATTRIBUTION, subdomains: 'abcd', maxZoom: 19 }).addTo(map);
+                    marker = L.marker([lat, lon], { draggable: true }).addTo(map);
+                    map.on('click', e => marker.setLatLng(e.latlng));
+                } else {
+                    map.setView([lat, lon], zoom);
+                    marker.setLatLng([lat, lon]);
+                    map.invalidateSize();
+                }
+            }, 150);
         });
 
-        $closeMap.addEventListener('click', () => {
-            const position = marker.getLatLng().wrap();
-            $latitude.value = position.lat;
-            $longitude.value = position.lng;
+        document.getElementById('closeMap').addEventListener('click', () => {
+            if (marker) {
+                const pos = marker.getLatLng().wrap();
+                setCoords(pos.lat, pos.lng);
+            }
             closeModal('mapModal');
         });
 
-        if (loadPluginSettings) {
-            document.getElementById('latitude').value = pluginSettings.latitude;
-            document.getElementById('longitude').value = pluginSettings.longitude;
-
-            document.getElementById('units').value = pluginSettings.units;
-
-            document.getElementById('displayRefreshTime').checked = pluginSettings.displayRefreshTime;
-            document.getElementById('displayRefreshTime').value = pluginSettings.displayRefreshTime;
-
-            document.getElementById('displayMetrics').checked = pluginSettings.displayMetrics;
-            document.getElementById('displayMetrics').value = pluginSettings.displayMetrics;
-
-            document.getElementById('displayGraph').checked = pluginSettings.displayGraph;
-            document.getElementById('displayGraph').value = pluginSettings.displayGraph;
-
-			document.getElementById('displayRain').checked = pluginSettings.displayRain;
-            document.getElementById('displayRain').value = pluginSettings.displayRain;
-			
-			document.getElementById('displayGraphIcons').checked = pluginSettings.displayGraphIcons;
-            document.getElementById('displayGraphIcons').value = pluginSettings.displayGraphIcons;
-			
-            document.getElementById('displayForecast').checked = pluginSettings.displayForecast;
-            document.getElementById('displayForecast').value = pluginSettings.displayForecast;
-
-            document.getElementById('forecastDays').value = pluginSettings.forecastDays;
-
-            document.getElementById('moonPhase').checked = pluginSettings.moonPhase;
-            document.getElementById('moonPhase').value = pluginSettings.moonPhase;
-
-            document.getElementById('weatherTimeZone').value = pluginSettings.weatherTimeZone;
-            document.getElementById('partialZone').value = pluginSettings.partialZone || 'all';
-            selectedTitle = pluginSettings.titleSelection || 'location';
-            weatherProvider = pluginSettings.weatherProvider || 'OpenMeteo';
-
-            document.getElementById('customTitle').value = pluginSettings.customTitle || '';
-        } else {
-            // set default values
-            document.getElementById('units').value = "imperial";
-            document.getElementById('displayRefreshTime').checked = true;
-            document.getElementById('displayRefreshTime').value = "true";
-            document.getElementById('displayMetrics').checked = true;
-            document.getElementById('displayMetrics').value = "true";
-            document.getElementById('displayGraph').checked = true;
-            document.getElementById('displayGraph').value = "true";
-			document.getElementById('displayRain').checked = false;
-            document.getElementById('displayRain').value = "false";
-			document.getElementById('displayGraphIcons').checked = false;
-			document.getElementById('displayGraphIcons').value = "false";
-            document.getElementById('displayForecast').checked = true;
-            document.getElementById('displayForecast').value = "true";
-            document.getElementById('forecastDays').value = 7;
-            document.getElementById('moonPhase').checked = false;
-			document.getElementById('moonPhase').value = "false";
-            document.getElementById('weatherTimeZone').value = "locationTimeZone";
-            document.getElementById('partialZone').value = 'all';
-        }
-
-        document.getElementById('weatherProvider').value = weatherProvider;
-        document.querySelector(`input[name="titleSelection"][value="${selectedTitle}"]`).checked = true;
-        updateTitleOptions(weatherProvider)
-        // ── Bouton GPS : remplit lat/lon via le navigateur ──────────────────
+        // ── GPS ──────────────────────────────────────────────────────────
         document.getElementById('gpsDetect').addEventListener('click', () => {
             const statusEl = document.getElementById('gpsStatus');
-
             if (!navigator.geolocation) {
-                statusEl.style.color = '#c00';
-                statusEl.textContent = '❌ GPS not available in this browser. Use the map instead.';
-                openModal('gpsPermissionModal');
+                statusEl.style.color = 'var(--accent-2, #c00)';
+                statusEl.textContent = 'GPS unavailable in this browser. Use Search or Pick on map.';
                 return;
             }
-
-            statusEl.style.color = '#555';
-            statusEl.textContent = '⏳ Getting GPS position…';
-
+            if (!location.protocol.startsWith('https') && location.hostname !== 'localhost') {
+                statusEl.style.color = 'var(--accent-2, #c00)';
+                statusEl.textContent = 'GPS requires HTTPS. Use Search or Pick on map instead.';
+                return;
+            }
+            statusEl.style.color = 'var(--muted)';
+            statusEl.textContent = 'Getting GPS position…';
             navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    const lat = pos.coords.latitude.toFixed(6);
-                    const lon = pos.coords.longitude.toFixed(6);
-                    const acc = Math.round(pos.coords.accuracy);
-
-                    $latitude.value  = lat;
-                    $longitude.value = lon;
-
-                    statusEl.style.color = '#2a7a2a';
-                    statusEl.textContent = `✅ Location detected: ${lat}, ${lon}  (±${acc} m)`;
+                pos => {
+                    setCoords(pos.coords.latitude, pos.coords.longitude);
+                    statusEl.style.color = 'var(--accent)';
+                    statusEl.textContent = `Location set (±${Math.round(pos.coords.accuracy)} m)`;
                 },
-                (err) => {
-                    statusEl.style.color = '#c00';
-                    if (err.code === 1) {
-                        statusEl.textContent = '❌ Permission denied — see instructions below';
-                        openModal('gpsPermissionModal');
-                    } else if (err.code === 2) {
-                        statusEl.textContent = '❌ Position unavailable — try again or use the map.';
-                    } else {
-                        statusEl.textContent = '❌ Timeout — try again.';
-                    }
+                err => {
+                    statusEl.style.color = 'var(--accent-2, #c00)';
+                    if (err.code === 1) { statusEl.textContent = 'Permission denied.'; openModal('gpsPermissionModal'); }
+                    else if (err.code === 2) statusEl.textContent = 'Position unavailable — try again or use Search.';
+                    else statusEl.textContent = 'Timeout — try again.';
                 },
                 { enableHighAccuracy: true, timeout: 15000 }
             );
         });
+
+        // ── Load saved settings ──────────────────────────────────────────
+        if (loadPluginSettings) {
+            if (pluginSettings.latitude && pluginSettings.longitude) {
+                setCoords(pluginSettings.latitude, pluginSettings.longitude);
+            }
+            document.getElementById('units').value = pluginSettings.units || 'metric';
+            document.getElementById('displayRefreshTime').checked = pluginSettings.displayRefreshTime == true || pluginSettings.displayRefreshTime === 'true';
+            document.getElementById('displayRefreshTime').value = document.getElementById('displayRefreshTime').checked ? 'true' : 'false';
+            document.getElementById('displayMetrics').checked = pluginSettings.displayMetrics == true || pluginSettings.displayMetrics === 'true';
+            document.getElementById('displayMetrics').value = document.getElementById('displayMetrics').checked ? 'true' : 'false';
+            document.getElementById('displayGraph').checked = pluginSettings.displayGraph == true || pluginSettings.displayGraph === 'true';
+            document.getElementById('displayGraph').value = document.getElementById('displayGraph').checked ? 'true' : 'false';
+            document.getElementById('displayRain').checked = pluginSettings.displayRain == true || pluginSettings.displayRain === 'true';
+            document.getElementById('displayRain').value = document.getElementById('displayRain').checked ? 'true' : 'false';
+            document.getElementById('displayGraphIcons').checked = pluginSettings.displayGraphIcons == true || pluginSettings.displayGraphIcons === 'true';
+            document.getElementById('displayGraphIcons').value = document.getElementById('displayGraphIcons').checked ? 'true' : 'false';
+            document.getElementById('displayForecast').checked = pluginSettings.displayForecast == true || pluginSettings.displayForecast === 'true';
+            document.getElementById('displayForecast').value = document.getElementById('displayForecast').checked ? 'true' : 'false';
+            document.getElementById('forecastDays').value = pluginSettings.forecastDays || 7;
+            document.getElementById('moonPhase').checked = pluginSettings.moonPhase == true || pluginSettings.moonPhase === 'true';
+            document.getElementById('moonPhase').value = document.getElementById('moonPhase').checked ? 'true' : 'false';
+            document.getElementById('weatherTimeZone').value = pluginSettings.weatherTimeZone || 'locationTimeZone';
+            document.getElementById('partialZone').value = pluginSettings.partialZone || 'all';
+            document.getElementById('graphIconStep').value = pluginSettings.graphIconStep || '2';
+            selectedTitle = pluginSettings.titleSelection || 'location';
+            weatherProvider = pluginSettings.weatherProvider || 'OpenMeteo';
+            document.getElementById('customTitle').value = pluginSettings.customTitle || '';
+        } else {
+            // Defaults
+            document.getElementById('units').value = 'metric';
+            document.getElementById('displayRefreshTime').checked = true;
+            document.getElementById('displayRefreshTime').value = 'true';
+            document.getElementById('displayMetrics').checked = true;
+            document.getElementById('displayMetrics').value = 'true';
+            document.getElementById('displayGraph').checked = true;
+            document.getElementById('displayGraph').value = 'true';
+            document.getElementById('displayRain').checked = false;
+            document.getElementById('displayRain').value = 'false';
+            document.getElementById('displayGraphIcons').checked = false;
+            document.getElementById('displayGraphIcons').value = 'false';
+            document.getElementById('displayForecast').checked = true;
+            document.getElementById('displayForecast').value = 'true';
+            document.getElementById('forecastDays').value = '7';
+            document.getElementById('moonPhase').checked = false;
+            document.getElementById('moonPhase').value = 'false';
+            document.getElementById('weatherTimeZone').value = 'locationTimeZone';
+            document.getElementById('partialZone').value = 'all';
+        }
+
+        document.getElementById('weatherProvider').value = weatherProvider;
+        const titleRadio = document.querySelector(`input[name="titleSelection"][value="${selectedTitle}"]`);
+        if (titleRadio) titleRadio.checked = true;
+        updateTitleOptions(weatherProvider);
     });
 </script>

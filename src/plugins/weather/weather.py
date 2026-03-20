@@ -56,7 +56,7 @@ WEATHER_URL = "https://api.openweathermap.org/data/3.0/onecall?lat={lat}&lon={lo
 AIR_QUALITY_URL = "http://api.openweathermap.org/data/2.5/air_pollution?lat={lat}&lon={long}&appid={api_key}"
 GEOCODING_URL = "http://api.openweathermap.org/geo/1.0/reverse?lat={lat}&lon={long}&limit=1&appid={api_key}"
 
-OPEN_METEO_FORECAST_URL = "https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={long}&hourly=weather_code,temperature_2m,precipitation,precipitation_probability,relative_humidity_2m,surface_pressure,visibility&daily=weathercode,temperature_2m_max,temperature_2m_min,sunrise,sunset&current=temperature,windspeed,winddirection,is_day,precipitation,weather_code,apparent_temperature&timezone=auto&models=best_match&forecast_days={forecast_days}"
+OPEN_METEO_FORECAST_URL = "https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={long}&hourly=weather_code,temperature_2m,precipitation,precipitation_probability,relative_humidity_2m,surface_pressure,visibility&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset&current=temperature,windspeed,winddirection,is_day,precipitation,weather_code,apparent_temperature&timezone=auto&forecast_days={forecast_days}"
 OPEN_METEO_AIR_QUALITY_URL = "https://air-quality-api.open-meteo.com/v1/air-quality?latitude={lat}&longitude={long}&hourly=european_aqi,uv_index,uv_index_clear_sky&timezone=auto"
 OPEN_METEO_UNIT_PARAMS = {
     "standard": "temperature_unit=celsius&wind_speed_unit=ms&precipitation_unit=mm",  # temperature is converted to Kelvin later
@@ -210,7 +210,7 @@ class Weather(BasePlugin):
                 current_icon = current_icon.replace("n", "d")
         data = {
             "current_date": dt.strftime("%A, %B %d"),
-            "current_day_icon": self.get_icon_path({current_icon}),
+            "current_day_icon": self.get_icon_path(current_icon),
             "current_temperature": str(round(current.get("temp"))),
             "feels_like": str(round(current.get("feels_like"))),
             "temperature_unit": UNITS[units]["temperature"],
@@ -235,7 +235,7 @@ class Weather(BasePlugin):
 
         data = {
             "current_date": dt.strftime("%A, %B %d"),
-            "current_day_icon": self.get_icon_path({current_icon}),
+            "current_day_icon": self.get_icon_path(current_icon),
             "current_temperature": str(round(current.get("temperature", 0) + temperature_conversion)),
             "feels_like": str(round(current.get("apparent_temperature", current.get("temperature", 0)) + temperature_conversion)),
             "temperature_unit": UNITS[units]["temperature"],
@@ -398,7 +398,7 @@ class Weather(BasePlugin):
         Parse the daily forecast from Open-Meteo API and calculate moon phase and illumination using the local 'astral' library.
         """
         times = daily_data.get('time', [])
-        weather_codes = daily_data.get('weathercode', [])
+        weather_codes = daily_data.get('weather_code', daily_data.get('weathercode', []))
         temp_max = daily_data.get('temperature_2m_max', [])
         temp_min = daily_data.get('temperature_2m_min', [])
         if units == "standard":
@@ -474,7 +474,7 @@ class Weather(BasePlugin):
                 "temperature": int(hour.get("temp")),
                 "precipitation": hour.get("pop"),
                 "rain": round(precip_value, 2),
-                "icon": self.get_icon_path({icon_name})
+                "icon": self.get_icon_path(icon_name)
             }
             hourly.append(hour_forecast)
         return hourly
@@ -914,10 +914,15 @@ class Weather(BasePlugin):
         reader = csv.DictReader(StringIO(response.text), delimiter=";")
         best = None
         best_dist = None
+        first_row = None
         for row in reader:
+            if first_row is None:
+                first_row = row
+                logger.debug(f"MeteoSwiss point CSV columns: {list(row.keys())}")
+            # Support both possible column name variants
             try:
-                p_lat = float(row.get("point_coordinates_wgs84_lat"))
-                p_lon = float(row.get("point_coordinates_wgs84_lon"))
+                p_lat = float(row.get("point_coordinates_wgs84_lat") or row.get("lat") or row.get("latitude"))
+                p_lon = float(row.get("point_coordinates_wgs84_lon") or row.get("lon") or row.get("longitude"))
             except Exception:
                 continue
             dist = self._haversine_km(lat, lon, p_lat, p_lon)
@@ -978,19 +983,35 @@ class Weather(BasePlugin):
         series = []
         pid = str(point_id)
         ptid = str(point_type_id)
+        first_row_logged = False
         for row in reader:
+            if not first_row_logged:
+                logger.debug(f"MeteoSwiss {param_name} CSV columns: {list(row.keys())}")
+                first_row_logged = True
             if row.get("point_id") != pid or row.get("point_type_id") != ptid:
                 continue
-            raw_time = row.get("Date")
+            # Support both "Date" and "reference_ts" column names
+            raw_time = row.get("Date") or row.get("reference_ts") or row.get("time")
             raw_value = row.get(param_name)
             if not raw_time or raw_value in (None, ""):
                 continue
             try:
-                dt = datetime.strptime(raw_time, "%Y%m%d%H%M")
+                raw_clean = raw_time.strip()
+                dt = None
+                for fmt in ("%Y%m%d%H%M", "%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M"):
+                    try:
+                        dt = datetime.strptime(raw_clean, fmt)
+                        break
+                    except ValueError:
+                        continue
+                if dt is None:
+                    continue
                 dt = tz.localize(dt)
                 series.append((dt, float(raw_value)))
             except Exception:
                 continue
+        if not series:
+            logger.warning(f"MeteoSwiss {param_name}: no data found for point_id={pid}, point_type_id={ptid}")
         return series
 
     def _get_smn_current(self, station_abbr):
