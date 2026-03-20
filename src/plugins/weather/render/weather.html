@@ -1,340 +1,301 @@
-{% extends "plugin.html" %}
-
-{% block content %}
-<div id="units-container" data-units="{{ units }}"></div>
-
-{# ── Partial refresh: hide all zones except the selected one ──────────────── #}
-{% if plugin_settings.partialZone and plugin_settings.partialZone != 'all' %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weather Display</title>
 <style>
-  {% if plugin_settings.partialZone == 'temp' %}
-  /* temp zone: show only the temperature panel, full-width centered */
-  [data-zone="header"],
-  [data-zone="graph"],
-  [data-zone="forecast"] { display: none !important; }
-  .data-points { display: none !important; }
-  .current-temperature { width: 100% !important; max-width: 600px; }
-  {% else %}
-  [data-zone]:not([data-zone="{{ plugin_settings.partialZone }}"]) { display: none !important; }
-  {% endif %}
-  .weather-dashboard { gap: 0; justify-content: center; }
+/* ── E-ink weather display template ──────────────────────────────── */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    background: #fff;
+    color: #000;
+    font-family: 'DejaVu Sans', 'Liberation Sans', Arial, sans-serif;
+    width: {{ display_width | default(800) }}px;
+    height: {{ display_height | default(480) }}px;
+    overflow: hidden;
+}
+
+.weather-dashboard {
+    display: flex;
+    flex-direction: column;
+    width: {{ display_width | default(800) }}px;
+    height: {{ display_height | default(480) }}px;
+    padding: 4px;
+    gap: 3px;
+}
+
+/* ── Zones ───────────────────────────────────────────────────────── */
+[data-zone] {
+    flex-shrink: 0;
+    overflow: hidden;
+    border-radius: 6px;
+}
+
+/* Size variants */
+[data-zone].zone-size-compact { flex: 0 0 28px; }
+[data-zone].zone-size-normal  { flex: 1; }
+[data-zone].zone-size-large   { flex: 2; }
+
+/* Style variants */
+[data-zone].zone-style-rounded { border-radius: 8px; }
+[data-zone].zone-style-square  { border-radius: 0; }
+
+/* Border variant */
+[data-zone].zone-border { border: 1px solid #000; }
+
+/* ── Header zone ─────────────────────────────────────────────────── */
+.zone-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 8px;
+    font-size: 13px;
+    font-weight: bold;
+    border-bottom: 1px solid #ccc;
+}
+.zone-header .city { font-size: 14px; }
+.zone-header .date-time { font-size: 11px; color: #444; text-align: right; }
+
+/* ── Temperature zone ────────────────────────────────────────────── */
+.zone-temperature {
+    display: flex;
+    align-items: center;
+    padding: 4px 10px;
+    gap: 10px;
+}
+.zone-temperature .temp-main {
+    font-size: 42px;
+    font-weight: bold;
+    line-height: 1;
+}
+.zone-temperature .temp-details {
+    display: flex;
+    flex-direction: column;
+    font-size: 11px;
+    gap: 2px;
+}
+.zone-temperature .weather-icon {
+    width: 48px;
+    height: 48px;
+    margin-left: auto;
+}
+
+/* ── Metrics zone ────────────────────────────────────────────────── */
+.zone-metrics {
+    display: flex;
+    align-items: center;
+    padding: 3px 8px;
+    gap: 10px;
+    font-size: 10px;
+    flex-wrap: wrap;
+}
+.metric-item {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+.metric-item img { width: 12px; height: 12px; }
+
+/* ── Graph zone ──────────────────────────────────────────────────── */
+.zone-graph {
+    padding: 3px 6px 2px;
+    overflow: hidden;
+}
+.zone-graph svg { display: block; }
+
+/* ── Forecast zone ───────────────────────────────────────────────── */
+.zone-forecast {
+    display: flex;
+    padding: 3px 4px;
+    gap: 2px;
+    overflow: hidden;
+}
+.forecast-day {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 9px;
+    gap: 1px;
+    border-left: 1px solid #ddd;
+    padding: 0 3px;
+}
+.forecast-day:first-child { border-left: none; }
+.forecast-day .fc-day   { font-weight: bold; font-size: 9px; }
+.forecast-day .fc-icon  { width: 20px; height: 20px; }
+.forecast-day .fc-temps { font-size: 9px; }
+.forecast-day .fc-hi    { font-weight: bold; }
+.forecast-day .fc-lo    { color: #666; }
 </style>
-{% endif %}
+</head>
+<body>
 
-<div class="weather-dashboard">
+<div class="weather-dashboard"
+     data-layout='{{ plugin_settings.layoutConfig | default("[]") }}'>
 
-  {% if plugin_settings.displayRefreshTime == "true" %}
-  <div class="last-refresh">↻ {{ last_refresh_time }}</div>
-  {% endif %}
-
-  <!-- ── ZONE header : titre + date ──────────────────────────────────────── -->
-  <div class="header" data-zone="header">
-    <div class="header-row">
-      <div class="title">{{ title }}</div>
-      <div class="current-date">{{ current_date }}</div>
-    </div>
-    <div class="header-divider"></div>
-  </div>
-
-  <!-- ── ZONE current : température + métriques ──────────────────────────── -->
-  <div class="today-container" data-zone="current">
-
-    <!-- ── ZONE temp : current temp only (fast e-ink update) ────────────── -->
-    <div class="current-temperature" data-zone="temp">
-      <img class="current-icon" src="{{current_day_icon}}" alt="Current Weather Icon">
-      <div class="current-weather">
-        <div class="current-temp">{{ current_temperature }}<span class="temperature-unit">{{temperature_unit}}</span></div>
-        <div class="feels-like">Feels Like {{ feels_like }}{% if units != "standard" %}°{% endif %}</div>
-        <div class="min-max">
-          <span class="temp-high">{{ forecast[0].high }}{% if units != "standard" %}°{% endif %}</span>
-          <span class="temp-sep"> / </span>
-          <span class="temp-low">{{ forecast[0].low }}{% if units != "standard" %}°{% endif %}</span>
+    <!-- ── HEADER zone ────────────────────────────────────────────── -->
+    <div data-zone="header" class="zone-size-normal zone-style-rounded">
+        <div class="zone-header">
+            <span class="city">{{ title | default(city | default('—')) }}</span>
+            <span class="date-time">
+                {{ current_date | default('') }}<br>
+                {{ current_time | default('') }}
+                {% if plugin_settings.displayRefreshTime == 'true' or plugin_settings.displayRefreshTime == True %}
+                    <br><small style="color:#999;">Updated {{ refresh_time | default('—') }}</small>
+                {% endif %}
+            </span>
         </div>
-      </div>
     </div>
 
-    {% if plugin_settings.displayMetrics and plugin_settings.displayMetrics == "true" %}
-    <div class="data-points">
-      {% for dp in data_points %}
-        <div class="data-point column-container">
-          <div class="data-point-img-container">
-            <img class="data-point-icon" src="{{dp.icon}}" alt="{{ dp.label }}">
-          </div>
-          <div class="data-point-data">
-            <div class="data-point-label">{{ dp.label }}</div>
-            <div class="data-point-measurement">
-              {{ dp.measurement }}{% if dp.unit %}<span class="data-point-unit">{{ dp.unit }}</span>{% endif %}
-              {% if dp.label == "Wind" %}
-                <span class="wind-arrow-symbol">{{ dp.arrow }}</span>
-              {% endif %}
+    <!-- ── TEMPERATURE zone ───────────────────────────────────────── -->
+    <div data-zone="temperature" class="zone-size-large zone-style-rounded">
+        <div class="zone-temperature">
+            <div>
+                <div class="temp-main">{{ temperature | default('—') }}°</div>
+                <div class="temp-details">
+                    <span>{{ weather_description | default('') }}</span>
+                    <span>Feels {{ feels_like | default('—') }}°</span>
+                    {% if plugin_settings.displayRain == 'true' or plugin_settings.displayRain == True %}
+                        <span>Rain {{ rain | default('0') }} mm</span>
+                    {% endif %}
+                    {% if plugin_settings.moonPhase == 'true' or plugin_settings.moonPhase == True %}
+                        <span>{{ moon_phase_icon | default('') }} {{ moon_phase | default('') }}</span>
+                    {% endif %}
+                </div>
             </div>
-          </div>
+            {% if weather_icon_path %}
+                <img class="weather-icon" src="{{ weather_icon_path }}" alt="{{ weather_description | default('') }}">
+            {% endif %}
         </div>
-      {% endfor %}
+    </div>
+
+    <!-- ── METRICS zone ───────────────────────────────────────────── -->
+    {% if plugin_settings.displayMetrics == 'true' or plugin_settings.displayMetrics == True %}
+    <div data-zone="metrics" class="zone-size-compact zone-style-rounded">
+        <div class="zone-metrics">
+            {% if humidity is defined %}
+            <div class="metric-item">
+                <img src="/static/plugins/weather/icons/humidity.svg" alt="Humidity"> {{ humidity }}%
+            </div>
+            {% endif %}
+            {% if wind_speed is defined %}
+            <div class="metric-item">
+                <img src="/static/plugins/weather/icons/wind.svg" alt="Wind"> {{ wind_speed }} km/h
+            </div>
+            {% endif %}
+            {% if pressure is defined %}
+            <div class="metric-item">
+                <img src="/static/plugins/weather/icons/pressure.svg" alt="Pressure"> {{ pressure }} hPa
+            </div>
+            {% endif %}
+            {% if visibility is defined %}
+            <div class="metric-item">
+                <img src="/static/plugins/weather/icons/visibility.svg" alt="Visibility"> {{ visibility }} km
+            </div>
+            {% endif %}
+            {% if uvi is defined %}
+            <div class="metric-item">
+                <img src="/static/plugins/weather/icons/uvi.svg" alt="UV"> UV {{ uvi }}
+            </div>
+            {% endif %}
+            {% if sunrise is defined %}
+            <div class="metric-item">
+                <img src="/static/plugins/weather/icons/sunrise.svg" alt="Sunrise"> {{ sunrise }}
+            </div>
+            {% endif %}
+            {% if sunset is defined %}
+            <div class="metric-item">
+                <img src="/static/plugins/weather/icons/sunset.svg" alt="Sunset"> {{ sunset }}
+            </div>
+            {% endif %}
+        </div>
     </div>
     {% endif %}
 
-  </div>
-
-  <!-- ── ZONE graph : graphique horaire ──────────────────────────────────── -->
-  {% if plugin_settings.displayGraph and plugin_settings.displayGraph == "true" %}
-  <div class="chart-container" data-zone="graph">
-    <canvas id="hourlyTemperatureChart"></canvas>
-  </div>
-  {% endif %}
-
-  <!-- ── ZONE forecast : prévisions ─────────────────────────────────────── -->
-  {% if plugin_settings.displayForecast and plugin_settings.displayForecast == "true" %}
-  <div class="forecast" data-zone="forecast">
-    {% for day in forecast[1:(plugin_settings.forecastDays | int) + 1] %}
-      <div class="forecast-day">
-        <div class="forecast-day-name">{{ day.day }}</div>
-        <img class="forecast-icon" src="{{day.icon}}" alt="{{ day.day }} Weather Icon">
-        <div class="forecast-temps">
-          <span class="high">{{ day.high }}{% if units != "standard" %}°{% endif %}</span> /
-          <span class="low">{{ day.low }}{% if units != "standard" %}°{% endif %}</span>
+    <!-- ── GRAPH zone ─────────────────────────────────────────────── -->
+    {% if plugin_settings.displayGraph == 'true' or plugin_settings.displayGraph == True %}
+    <div data-zone="graph" class="zone-size-normal zone-style-rounded">
+        <div class="zone-graph">
+            {% if hourly_graph_svg %}
+                {{ hourly_graph_svg | safe }}
+            {% else %}
+                <svg width="388" height="40" viewBox="0 0 388 40">
+                    <text x="194" y="24" text-anchor="middle" font-size="10" fill="#999">No graph data</text>
+                </svg>
+            {% endif %}
         </div>
-        {% if plugin_settings.moonPhase and plugin_settings.moonPhase == "true" %}
-        <div class="separator"></div>
-        <div class="moon-phase-container">
-          <img class="moon-phase-icon" src="{{day.moon_phase_icon}}" alt="Moon phase icon">
-          <span style="flex: 1;">{{day.moon_phase_pct}} %</span>
+    </div>
+    {% endif %}
+
+    <!-- ── FORECAST zone ──────────────────────────────────────────── -->
+    {% if plugin_settings.displayForecast == 'true' or plugin_settings.displayForecast == True %}
+    <div data-zone="forecast" class="zone-size-normal zone-style-rounded">
+        <div class="zone-forecast">
+            {% for day in forecast_days | default([]) %}
+            <div class="forecast-day">
+                <span class="fc-day">{{ day.day | default('') }}</span>
+                {% if day.icon_path %}
+                    <img class="fc-icon" src="{{ day.icon_path }}" alt="{{ day.description | default('') }}">
+                {% endif %}
+                <span class="fc-temps">
+                    <span class="fc-hi">{{ day.temp_max | default('—') }}°</span>
+                    <span class="fc-lo"> / {{ day.temp_min | default('—') }}°</span>
+                </span>
+            </div>
+            {% endfor %}
         </div>
-        {% endif %}
-      </div>
-    {% endfor %}
-  </div>
-  {% endif %}
+    </div>
+    {% endif %}
 
 </div>
 
-<script src="{{static_dir}}/scripts/chart.js" charset="UTF-8"></script>
-
 <script>
-  document.addEventListener("DOMContentLoaded", function () {
-    const canvas = document.getElementById('hourlyTemperatureChart');
-    const ctx = canvas.getContext('2d');
-    const rect = canvas.getBoundingClientRect();
+// Apply layout config: reorder zones, apply sizes/styles, hide disabled zones
+(function() {
+    var rawLayout = document.querySelector('.weather-dashboard').getAttribute('data-layout') || '[]';
+    var layout;
+    try { layout = JSON.parse(rawLayout); } catch(e) { layout = []; }
+    if (!layout || !layout.length) return;
 
-    // Extract hourly temperature and labels from template variables
-    const labels = [{% for hour in hourly_forecast %}"{{ hour.time }}"{% if not loop.last %}, {% endif %}{% endfor %}];
-    const temperatures = [{% for hour in hourly_forecast %}{{ hour.temperature }}{% if not loop.last %}, {% endif %}{% endfor %}];
-    const precipitation = [{% for hour in hourly_forecast %}{{ hour.precipitation * 100}}{% if not loop.last %}, {% endif %}{% endfor %}]; // Convert to percentage
-    const rain = [{% for hour in hourly_forecast %}{{ hour.rain or 0 }}{% if not loop.last %}, {% endif %}{% endfor %}];
-    const weatherIconsPaths = [{% for hour in hourly_forecast %}"{{ hour.icon | replace('\\', '/') }}"{% if not loop.last %}, {% endif %}{% endfor %}];
-	const iconStep = parseInt("{{ plugin_settings.graphIconStep or 2 }}");
-	const units = document.getElementById('units-container').dataset.units;
-	const isImperial = units === "imperial";
-	const unit = isImperial ? "in" : "mm";
-	const threshold = isImperial ? 0.0035 : 0.09;
+    var dashboard = document.querySelector('.weather-dashboard');
+    if (!dashboard) return;
 
-    // Find min and max temperatures
-    const minTemp = Math.min(...temperatures);
-    var maxTemp = Math.max(...temperatures);
+    layout.forEach(function(zone) {
+        var el = dashboard.querySelector('[data-zone="' + zone.id + '"]');
+        if (!el) return;
 
-    Chart.register({
-      id: 'annotationRain',
-      afterDatasetsDraw(chart, args, pluginOptions) {
-        const { ctx } = chart;
-        const rainData = pluginOptions.precipitationData || [];
-        const meta = chart.getDatasetMeta(1);
-
-        ctx.save();
-        ctx.textAlign = 'center';
-
-        meta.data.forEach((bar, i) => {
-          const rainAmount = rainData[i];
-          if (rainAmount && rainAmount > threshold) {
-            const x = bar.x;
-            const y = bar.y;
-			const base = bar.base;
-			const height = base - y;
-
-			let textY, unitY;
-
-			if (height < 25) {
-			  textY = y - 10;
-			  unitY = y - 3;
-			} else {
-			  textY = y + 13;
-			  unitY = y + 20;
-			}
-            ctx.fillStyle = "{{ plugin_settings.textColor }}";
-            ctx.fillText(rainAmount.toFixed(2), x, textY);
-            ctx.fillText(unit, x, unitY);
-          }
-        });
-
-        ctx.restore();
-      }
-    });
-
-    {% if plugin_settings.displayGraphIcons == "true" %}
-    Chart.register({
-      id: 'chartIcons',
-      afterDatasetsDraw(chart) {
-        const { ctx, chartArea: { bottom }, scales: { x } } = chart;
-        const iconSize = 22;
-
-        ctx.save();
-        chart.getDatasetMeta(0).data.forEach((point, i) => {
-
-		if (i % iconStep !== 0) return;
-
-          const img = new Image();
-          img.src = weatherIconsPaths[i];
-          const xPos = point.x - (iconSize / 2);
-          const yPos = bottom + 25;
-
-          if (img.complete) {
-            ctx.drawImage(img, xPos, yPos, iconSize, iconSize);
-          } else {
-            img.onload = () => ctx.drawImage(img, xPos, yPos, iconSize, iconSize);
-          }
-        });
-        ctx.restore();
-      }
-    });
-    {% endif %}
-
-    const chart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets: [{
-          type: 'line',
-          label: 'Hourly Temperature',
-          data: temperatures,
-          borderColor: 'rgba(241, 122, 36, 0.9)', // Line color
-          borderWidth: 2,
-          pointRadius: 0, // Hide points
-          fill: true, // Enable filling the area under the line
-          tension: 0.5
-        },
-        {
-          type: 'bar',
-          label: 'Precipitation Probability',
-          data: precipitation,
-          borderColor: 'rgba(26, 111, 176, 1)', // Semi-transparent blue
-          borderWidth: {
-            top: 2,
-            right: 0,
-            bottom: 0,
-            left: 0
-          },
-          yAxisID: 'y1',
-          barPercentage: 1.0, // Ensures full width
-          categoryPercentage: 1.0,  // Ensures full width
-          fill: true, // Enable filling the area under the line
+        // Visibility
+        if (!zone.enabled) {
+            el.style.display = 'none';
+            return;
         }
-      ]
-      },
-      options: {
-        layout: {
-		  padding: {
-		    top: {% if plugin_settings.displayGraphIcons == "true" %}3{% else %}0{% endif %},
-		    bottom: {% if plugin_settings.displayGraphIcons == "true" %}11{% else %}0{% endif %}
-		  }
-        },
-		animation: {
-          duration: 0, // general animation time
-        },
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          x: {
-            ticks: {
-              autoSkip: true,
-              padding: 10,
-              maxRotation: 0, // Prevent label rotation
-              minRotation: 0, // Prevent label rotation
-              color: "{{ plugin_settings.textColor }}",
-              font: {
-                family: 'Jost'
-              }
-            },
-            grid: {
-              tickLength: 0,
-              display: false // Hide x-axis grid
-            },
-            offset: true,
-            gridLines: {
-                drawBorder: false,
-            }
-          },
-          y: {
-            ticks: {
-              padding: 5,
-              color: "{{ plugin_settings.textColor }}",
-              font: {
-                family: 'Jost'
-              },
-              autoSkip: false,
-              callback: function(value, index, values) {
-                if (index === values.length-1) return (units != "standard") ? maxTemp + "°" : maxTemp;
-                else if (index === 0) return (units != "standard") ? minTemp + "°" : minTemp;
-                else return '';
-              }
-            },
-            grid: { display: false },
-            min: minTemp,
-            max: maxTemp,
-          },
-          y1: {
-            position: 'right',
-            grid: { display: false },
-            ticks: {
-              padding: 0,
-              color: "{{ plugin_settings.textColor }}",
-              font: {
-                family: 'Jost'
-              },
-              autoSkip: false,
-              callback: function(value, index, values) {
-                if (index === values.length - 1) return "100%";
-                else if (index === 0) return "0%";
-                else return '';
-              }
-            },
-            min: 0,
-            max: 100,
-          }
-        },
-        plugins: {
-          legend: { display: false },
-		  {% if plugin_settings.displayRain == "true" %}
-			annotationRain: { precipitationData: rain }
-	      {% endif %}
-        },
-        elements: {
-          line: {
-            borderJoinStyle: 'round' // Smoother line connection
-          }
-        }
-      }
+        el.style.display = '';
+
+        // Remove existing size/style/border classes
+        el.classList.remove('zone-size-compact', 'zone-size-normal', 'zone-size-large');
+        el.classList.remove('zone-style-rounded', 'zone-style-square');
+        el.classList.remove('zone-border');
+
+        // Apply new classes
+        if (zone.size)   el.classList.add('zone-size-' + zone.size);
+        if (zone.style)  el.classList.add('zone-style-' + zone.style);
+        if (zone.border) el.classList.add('zone-border');
+
+        // Reorder: append to dashboard in layout order
+        dashboard.appendChild(el);
     });
 
-    chart.update();
-
-    // Now, after the chart is created, we can access the scales
-    const gradientStart = chart.scales['y'].getPixelForValue(maxTemp); // Max temperature
-    const gradientEnd = chart.scales['y'].getPixelForValue(minTemp);   // Min temperature
-
-    // Create gradient based on y-axis values
-    const tempGradient = ctx.createLinearGradient(0, gradientStart, 0, gradientEnd+10);
-    tempGradient.addColorStop(0, 'rgba(252,204,5, 0.95)'); // Top of the gradient (max temperature)
-    tempGradient.addColorStop(1, 'rgba(252,204,5, 0.01)'); // Bottom of the gradient (min temperature)
-
-    // Update the chart to apply the gradient
-    chart.data.datasets[0].backgroundColor = tempGradient;
-
-    // Create gradient based on y-axis values
-    const precipitationGradient = ctx.createLinearGradient(0, gradientStart, 0, gradientEnd);
-    precipitationGradient.addColorStop(0, 'rgba(26, 111, 176, 0.8)'); // Top of the gradient (max temperature)
-    precipitationGradient.addColorStop(1, 'rgba(194, 223, 246, 0)'); // Bottom of the gradient (min temperature)
-
-    chart.data.datasets[1].backgroundColor = precipitationGradient;
-
-    chart.update();
-  });
+    // Hide any zones not mentioned in the layout config
+    var allZones = dashboard.querySelectorAll('[data-zone]');
+    allZones.forEach(function(el) {
+        var id = el.getAttribute('data-zone');
+        if (!layout.find(function(z) { return z.id === id; })) {
+            el.style.display = 'none';
+        }
+    });
+})();
 </script>
-{% endblock %}
+</body>
+</html>

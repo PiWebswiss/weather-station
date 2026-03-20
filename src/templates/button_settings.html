@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Physical Buttons{% endblock %}
+{% block content %}
+
+<div class="container py-4" style="max-width:560px;">
+
+  <h4 class="mb-1 fw-semibold">Physical Buttons</h4>
+  <p class="text-muted mb-4" style="font-size:.9rem;">
+    Configure what each button on the Inky display does when pressed.
+  </p>
+
+  <form id="btnForm">
+
+    {% for btn in buttons %}
+    <div class="card mb-3" style="border-radius:14px; border:1px solid var(--border, rgba(0,0,0,.1)); background:var(--card, #fff);">
+      <div class="card-body d-flex align-items-center gap-3" style="padding:14px 18px;">
+
+        <!-- Button badge -->
+        <div style="
+          width:36px; height:36px; border-radius:50%;
+          background:var(--accent, #2f6f6a); color:#fff;
+          display:flex; align-items:center; justify-content:center;
+          font-weight:700; font-size:1rem; flex-shrink:0;">
+          {{ btn }}
+        </div>
+
+        <!-- Label + select -->
+        <div style="flex:1;">
+          <label class="form-label mb-1" style="font-size:.85rem; font-weight:600;">
+            Button {{ btn }}
+          </label>
+          <select name="button_{{ btn }}" class="form-select form-select-sm"
+                  style="border-radius:8px;">
+            {% for value, label in actions.items() %}
+            <option value="{{ value }}"
+              {% if current[btn] == value %}selected{% endif %}>
+              {{ label }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+      </div>
+    </div>
+    {% endfor %}
+
+    <button type="submit" class="btn btn-primary w-100 mt-2" style="border-radius:10px;">
+      Save Button Settings
+    </button>
+
+  </form>
+
+</div>
+
+<script>
+document.getElementById('btnForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const data = new FormData(this);
+  fetch('/settings/buttons/update', { method: 'POST', body: data })
+    .then(r => r.json())
+    .then(res => {
+      if (typeof showResponseModal === 'function') {
+        showResponseModal(res.message, res.status === 'ok' ? 'success' : 'failure');
+      } else {
+        alert(res.message);
+      }
+    })
+    .catch(() => alert('Failed to save button settings.'));
+});
+</script>
+
+{% endblock %}

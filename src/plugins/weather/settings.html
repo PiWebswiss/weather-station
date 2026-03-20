@@ -96,6 +96,7 @@
 }
 .toggle-item:hover { background: var(--accent-soft, rgba(47,111,106,.12)); }
 .toggle-item input[type=checkbox] { accent-color: var(--accent, #2f6f6a); width:16px; height:16px; flex-shrink:0; }
+.toggle-item-icon { font-size: 1rem; flex-shrink: 0; }
 .toggle-item-label { font-size: .88rem; }
 
 /* loc buttons */
@@ -103,6 +104,99 @@
 .loc-btn-row .action-button { padding:8px 14px; font-size:.88rem; }
 
 #gpsStatus { font-size:.83em; margin-top:6px; }
+
+/* ── Layout Designer ────────────────────────────────────────────── */
+.zone-block {
+    background: var(--card, #fff);
+    border: 1px solid var(--border, rgba(0,0,0,.12));
+    border-radius: 10px;
+    margin-bottom: 8px;
+    padding: 10px 12px;
+    cursor: grab;
+    user-select: none;
+    transition: box-shadow 0.15s, transform 0.1s;
+}
+.zone-block:last-child { margin-bottom: 0; }
+.zone-block.dragging {
+    opacity: 0.5;
+    box-shadow: 0 8px 20px rgba(0,0,0,.2);
+    cursor: grabbing;
+}
+.zone-block.drag-over {
+    border-color: var(--accent, #2f6f6a);
+    background: var(--accent-soft, rgba(47,111,106,.08));
+}
+.zone-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.zone-drag-handle {
+    color: var(--muted, #888);
+    font-size: 18px;
+    cursor: grab;
+    line-height: 1;
+}
+.zone-name {
+    flex: 1;
+    font-weight: 600;
+    font-size: .9rem;
+}
+.zone-toggle input[type=checkbox] {
+    accent-color: var(--accent, #2f6f6a);
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+.zone-controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.zone-control-group {
+    display: flex;
+    gap: 2px;
+}
+.zone-size-btn, .zone-style-btn {
+    padding: 3px 8px;
+    border: 1px solid var(--border, rgba(0,0,0,.15));
+    border-radius: 6px;
+    background: transparent;
+    color: var(--muted, #888);
+    font-size: .78rem;
+    cursor: pointer;
+    transition: all .15s;
+    line-height: 1.4;
+}
+.zone-size-btn:hover, .zone-style-btn:hover {
+    border-color: var(--accent, #2f6f6a);
+    color: var(--accent, #2f6f6a);
+}
+.zone-size-btn.active, .zone-style-btn.active {
+    background: var(--accent, #2f6f6a);
+    color: #fff;
+    border-color: var(--accent, #2f6f6a);
+}
+.zone-border-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: .78rem;
+    color: var(--muted, #888);
+    cursor: pointer;
+}
+.zone-border-label input[type=checkbox] {
+    accent-color: var(--accent, #2f6f6a);
+    cursor: pointer;
+}
+.zone-block.zone-disabled {
+    opacity: 0.45;
+}
+.zone-block.zone-disabled .zone-controls {
+    pointer-events: none;
+}
 </style>
 
 <!-- ── SECTION 1: Location ───────────────────────────────────────── -->
@@ -179,22 +273,27 @@
     <div class="toggle-grid">
         <label class="toggle-item">
             <input type="checkbox" id="displayRefreshTime" name="displayRefreshTime" onclick="this.value=this.checked?'true':'false';">
+            <span class="toggle-item-icon">🕐</span>
             <span class="toggle-item-label">Refresh time</span>
         </label>
         <label class="toggle-item">
             <input type="checkbox" id="displayMetrics" name="displayMetrics" onclick="this.value=this.checked?'true':'false';">
+            <span class="toggle-item-icon">📊</span>
             <span class="toggle-item-label">Metrics</span>
         </label>
         <label class="toggle-item">
             <input type="checkbox" id="displayGraph" name="displayGraph" onclick="this.value=this.checked?'true':'false';">
+            <span class="toggle-item-icon">📈</span>
             <span class="toggle-item-label">Hourly graph</span>
         </label>
         <label class="toggle-item">
             <input type="checkbox" id="displayRain" name="displayRain" onclick="this.value=this.checked?'true':'false';">
+            <span class="toggle-item-icon">🌧</span>
             <span class="toggle-item-label">Rain amount</span>
         </label>
         <label class="toggle-item">
             <input type="checkbox" id="moonPhase" name="moonPhase" onclick="this.value=this.checked?'true':'false';">
+            <span class="toggle-item-icon">🌙</span>
             <span class="toggle-item-label">Moon phase</span>
         </label>
     </div>
@@ -225,6 +324,30 @@
             <option value="7">7 days</option>
         </select>
     </div>
+</div>
+
+<!-- ── SECTION 5 (inserted before Advanced): Layout Designer ──── -->
+<div class="wx-section" id="layoutDesigner">
+    <p class="wx-section-title">🎨 Layout Designer</p>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;">
+
+        <!-- Left: draggable zone list -->
+        <div style="flex:1;min-width:240px;">
+            <p style="font-size:.8rem;color:var(--muted);margin:0 0 8px;">Drag to reorder zones</p>
+            <div id="zoneList">
+                <!-- zones inserted by JS -->
+            </div>
+        </div>
+
+        <!-- Right: preview canvas -->
+        <div style="flex:0 0 280px;">
+            <p style="font-size:.8rem;color:var(--muted);margin:0 0 8px;">Live preview</p>
+            <div id="einkPreview" style="width:280px;height:168px;background:#111;border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:4px;overflow:hidden;">
+                <!-- preview blocks inserted by JS -->
+            </div>
+        </div>
+    </div>
+    <input type="hidden" id="layoutConfig" name="layoutConfig" value="">
 </div>
 
 <!-- ── SECTION 4: Advanced ──────────────────────────────────────── -->
@@ -279,7 +402,7 @@
 <script>
     function updateTitleOptions(provider) {
         const titleLocationRadio = document.getElementById('title-location');
-        const titleLocationLabel = document.querySelector('label[for="title-location"]') || titleLocationRadio.closest('label');
+        const titleLocationLabel = titleLocationRadio.closest('label');
         const titleCustomRadio = document.getElementById('title-custom');
         const customTitleInput = document.getElementById('customTitle');
         const tzRow = document.getElementById('tzRow');
@@ -475,9 +598,295 @@
             document.getElementById('partialZone').value = 'all';
         }
 
+        // Auto-detect location via IP if no location is set
+        if (!$lat.value) {
+            fetch('https://ipapi.co/json/')
+                .then(r => r.json())
+                .then(d => {
+                    if (d.latitude && d.longitude) {
+                        setCoords(d.latitude, d.longitude);
+                        document.getElementById('gpsStatus').textContent = 'Location auto-detected from IP';
+                        document.getElementById('gpsStatus').style.color = 'var(--muted)';
+                        // set city search box too
+                        if (d.city) document.getElementById('citySearch').value = (d.city + (d.country_name ? ', ' + d.country_name : ''));
+                    }
+                })
+                .catch(() => {});
+        }
+
         document.getElementById('weatherProvider').value = weatherProvider;
         const titleRadio = document.querySelector(`input[name="titleSelection"][value="${selectedTitle}"]`);
         if (titleRadio) titleRadio.checked = true;
         updateTitleOptions(weatherProvider);
+
+        // ── Layout Designer ──────────────────────────────────────────────
+        initLayoutEditor();
     });
+
+    // ────────────────────────────────────────────────────────────────────
+    // Layout Designer — zone definitions, drag-and-drop, live preview
+    // ────────────────────────────────────────────────────────────────────
+
+    const ZONE_DEFS = [
+        { id: 'header',      label: 'City & Date',      icon: '🏙' },
+        { id: 'temperature', label: 'Temperature',       icon: '🌡' },
+        { id: 'metrics',     label: 'Weather Metrics',   icon: '📊' },
+        { id: 'graph',       label: 'Hourly Graph',      icon: '📈' },
+        { id: 'forecast',    label: 'Forecast',          icon: '📅' }
+    ];
+
+    const ZONE_COLORS = {
+        header:      '#2a3a2a',
+        temperature: '#1a2a3a',
+        metrics:     '#2a2a1a',
+        graph:       '#2a1a2a',
+        forecast:    '#1a2a2a'
+    };
+
+    const ZONE_HEIGHTS = {
+        compact: '14px',
+        normal:  '28px',
+        large:   '48px'
+    };
+
+    // Internal state — array of zone objects
+    let zones = [];
+
+    function defaultZones() {
+        return ZONE_DEFS.map(def => ({
+            id:      def.id,
+            label:   def.label,
+            icon:    def.icon,
+            enabled: true,
+            size:    'normal',
+            style:   'rounded',
+            border:  false
+        }));
+    }
+
+    // ── Build zone block DOM element ─────────────────────────────────────
+    function createZoneBlock(zone) {
+        const block = document.createElement('div');
+        block.className = 'zone-block' + (zone.enabled ? '' : ' zone-disabled');
+        block.setAttribute('data-zone', zone.id);
+        block.draggable = true;
+
+        block.innerHTML = `
+            <div class="zone-info">
+                <span class="zone-drag-handle">⠿</span>
+                <span class="zone-icon" style="font-size:1rem;">${zone.icon}</span>
+                <span class="zone-name">${zone.label}</span>
+                <label class="zone-toggle" title="Enable/disable zone">
+                    <input type="checkbox" class="zone-enabled" ${zone.enabled ? 'checked' : ''}>
+                </label>
+            </div>
+            <div class="zone-controls">
+                <div class="zone-control-group" title="Zone size">
+                    <button type="button" class="zone-size-btn ${zone.size === 'compact' ? 'active' : ''}" data-size="compact">S</button>
+                    <button type="button" class="zone-size-btn ${zone.size === 'normal'  ? 'active' : ''}" data-size="normal">M</button>
+                    <button type="button" class="zone-size-btn ${zone.size === 'large'   ? 'active' : ''}" data-size="large">L</button>
+                </div>
+                <div class="zone-control-group" title="Corner style">
+                    <button type="button" class="zone-style-btn ${zone.style === 'rounded' ? 'active' : ''}" data-style="rounded">◉ Round</button>
+                    <button type="button" class="zone-style-btn ${zone.style === 'square'  ? 'active' : ''}" data-style="square">▪ Square</button>
+                </div>
+                <label class="zone-border-label" title="Draw border around zone">
+                    <input type="checkbox" class="zone-border" ${zone.border ? 'checked' : ''}> Border
+                </label>
+            </div>
+        `;
+
+        // Enable toggle
+        block.querySelector('.zone-enabled').addEventListener('change', function() {
+            zone.enabled = this.checked;
+            block.classList.toggle('zone-disabled', !zone.enabled);
+            saveLayoutConfig();
+            updatePreview();
+        });
+
+        // Size buttons
+        block.querySelectorAll('.zone-size-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                zone.size = btn.getAttribute('data-size');
+                block.querySelectorAll('.zone-size-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                saveLayoutConfig();
+                updatePreview();
+            });
+        });
+
+        // Style buttons
+        block.querySelectorAll('.zone-style-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                zone.style = btn.getAttribute('data-style');
+                block.querySelectorAll('.zone-style-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                saveLayoutConfig();
+                updatePreview();
+            });
+        });
+
+        // Border checkbox
+        block.querySelector('.zone-border').addEventListener('change', function() {
+            zone.border = this.checked;
+            saveLayoutConfig();
+            updatePreview();
+        });
+
+        // ── Drag-and-drop events ─────────────────────────────────────────
+        let dragSrc = null;
+
+        block.addEventListener('dragstart', function(e) {
+            dragSrc = block;
+            block.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', zone.id);
+        });
+
+        block.addEventListener('dragend', function() {
+            block.classList.remove('dragging');
+            document.querySelectorAll('#zoneList .zone-block').forEach(b => b.classList.remove('drag-over'));
+            // Sync zones array to DOM order after drop
+            syncZonesFromDOM();
+            saveLayoutConfig();
+            updatePreview();
+        });
+
+        block.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            if (block !== dragSrc) {
+                document.querySelectorAll('#zoneList .zone-block').forEach(b => b.classList.remove('drag-over'));
+                block.classList.add('drag-over');
+            }
+        });
+
+        block.addEventListener('dragleave', function() {
+            block.classList.remove('drag-over');
+        });
+
+        block.addEventListener('drop', function(e) {
+            e.preventDefault();
+            block.classList.remove('drag-over');
+            const srcId = e.dataTransfer.getData('text/plain');
+            const srcBlock = document.querySelector(`#zoneList .zone-block[data-zone="${srcId}"]`);
+            if (!srcBlock || srcBlock === block) return;
+            const zoneList = document.getElementById('zoneList');
+            // Insert srcBlock before the target block
+            zoneList.insertBefore(srcBlock, block);
+        });
+
+        return block;
+    }
+
+    // ── Sync zones array order to match current DOM order ────────────────
+    function syncZonesFromDOM() {
+        const zoneList = document.getElementById('zoneList');
+        const blocks = Array.from(zoneList.querySelectorAll('.zone-block'));
+        const newZones = [];
+        blocks.forEach(block => {
+            const id = block.getAttribute('data-zone');
+            const z = zones.find(z => z.id === id);
+            if (z) newZones.push(z);
+        });
+        zones = newZones;
+    }
+
+    // ── Create preview block for the e-ink preview panel ────────────────
+    function createPreviewBlock(zone) {
+        const div = document.createElement('div');
+        div.style.cssText = [
+            'background:' + (ZONE_COLORS[zone.id] || '#333'),
+            'border-radius:' + (zone.style === 'rounded' ? '6px' : '2px'),
+            'border:' + (zone.border ? '1px solid #555' : 'none'),
+            'height:' + (ZONE_HEIGHTS[zone.size] || '28px'),
+            'display:' + (zone.enabled ? 'flex' : 'none'),
+            'align-items:center',
+            'padding:0 8px',
+            'font-size:9px',
+            'color:rgba(255,255,255,0.6)',
+            'flex-shrink:0',
+            'transition:all .2s',
+            'overflow:hidden',
+            'white-space:nowrap'
+        ].join(';');
+        div.textContent = zone.icon + ' ' + zone.label;
+        return div;
+    }
+
+    // ── Refresh the live preview panel ───────────────────────────────────
+    function updatePreview() {
+        const preview = document.getElementById('einkPreview');
+        if (!preview) return;
+        preview.innerHTML = '';
+        zones.forEach(zone => {
+            preview.appendChild(createPreviewBlock(zone));
+        });
+    }
+
+    // ── Serialize zones to JSON and write to hidden input ────────────────
+    function saveLayoutConfig() {
+        const input = document.getElementById('layoutConfig');
+        if (!input) return;
+        const data = zones.map(z => ({
+            id:      z.id,
+            label:   z.label,
+            enabled: z.enabled,
+            size:    z.size,
+            style:   z.style,
+            border:  z.border
+        }));
+        input.value = JSON.stringify(data);
+    }
+
+    // ── Initialise the editor ─────────────────────────────────────────────
+    function initLayoutEditor() {
+        const zoneList = document.getElementById('zoneList');
+        if (!zoneList) return;
+
+        // Try to load from saved settings; fall back to defaults
+        let savedZones = null;
+        if (typeof pluginSettings !== 'undefined' && pluginSettings && pluginSettings.layoutConfig) {
+            try {
+                const parsed = JSON.parse(pluginSettings.layoutConfig);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    savedZones = parsed;
+                }
+            } catch(e) { /* ignore parse errors */ }
+        }
+
+        if (savedZones) {
+            // Merge saved data with ZONE_DEFS to restore icons/labels and handle new zones
+            const defsMap = {};
+            ZONE_DEFS.forEach(d => { defsMap[d.id] = d; });
+            zones = savedZones.map(s => ({
+                id:      s.id,
+                label:   defsMap[s.id] ? defsMap[s.id].label : s.label,
+                icon:    defsMap[s.id] ? defsMap[s.id].icon  : '❓',
+                enabled: s.enabled !== false,
+                size:    s.size  || 'normal',
+                style:   s.style || 'rounded',
+                border:  !!s.border
+            }));
+            // Append any ZONE_DEFS entries not in saved config (future new zones)
+            ZONE_DEFS.forEach(def => {
+                if (!zones.find(z => z.id === def.id)) {
+                    zones.push({ id: def.id, label: def.label, icon: def.icon,
+                                 enabled: true, size: 'normal', style: 'rounded', border: false });
+                }
+            });
+        } else {
+            zones = defaultZones();
+        }
+
+        // Render zone blocks
+        zoneList.innerHTML = '';
+        zones.forEach(zone => {
+            zoneList.appendChild(createZoneBlock(zone));
+        });
+
+        // Initial preview render and config save
+        updatePreview();
+        saveLayoutConfig();
+    }
 </script>
