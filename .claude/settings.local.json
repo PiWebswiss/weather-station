@@ -10,13 +10,22 @@
       "Bash(git -C \"C:/Users/louis/kDrive/CFC28/Semestre 3 - 4/informatique/217 Concevoir, planifier et mettre en place un service pour l''''IoE/Projet/weather-station\" log --oneline)",
       "Bash(git -C \"C:/Users/louis\" log --oneline)",
       "Read(//c/Users/louis/**)",
-      "Bash(py -c \"import ast; ast.parse\\(open\\(''C:/Users/louis/kDrive/CFC28/Semestre 3 - 4/informatique/217 Concevoir, planifier et mettre en place un service pour l\\\\''IoE/Projet/weather-station/src/plugins/weather/weather.py'', encoding=''utf-8''\\).read\\(\\)\\); print\\(''weather.py OK''\\)\")"
+      "Bash(py -c \"import ast; ast.parse\\(open\\(''C:/Users/louis/kDrive/CFC28/Semestre 3 - 4/informatique/217 Concevoir, planifier et mettre en place un service pour l\\\\''IoE/Projet/weather-station/src/plugins/weather/weather.py'', encoding=''utf-8''\\).read\\(\\)\\); print\\(''weather.py OK''\\)\")",
+      "Bash(find \"/c/Users/louis/kDrive/CFC28/Semestre 3 - 4/informatique/217 Concevoir, planifier et mettre en place un service pour l''''IoE/Projet/weather-station/\" -name *.py)",
+      "Bash(find \"/c/Users/louis/kDrive/CFC28/Semestre 3 - 4/informatique/217 Concevoir, planifier et mettre en place un service pour l''''IoE/Projet/weather-station/\" -not -path */.venv/* -not -path */__pycache__/*)",
+      "Bash(git -C \"c:/Users/louis/kDrive/CFC28/Semestre 3 - 4/informatique/217 Concevoir, planifier et mettre en place un service pour l''''IoE/Projet/weather-station\" show HEAD:src/inkypi.py)",
+      "Bash(git -C \"c:/Users/louis/kDrive/CFC28/Semestre 3 - 4/informatique/217 Concevoir, planifier et mettre en place un service pour l''''IoE/Projet/weather-station\" ls-files)",
+      "Bash(git -C \"C:/Users/louis/kDrive/CFC28/Semestre 3 - 4/informatique/217 Concevoir, planifier et mettre en place un service pour l''''IoE/Projet/weather-station\" ls-files)",
+      "Bash(pip show:*)",
+      "Bash(python -c \"import inkypi; print\\(inkypi.__file__\\)\")"
     ],
     "additionalDirectories": [
       "\\tmp",
       "C:\\Users\\louis\\AppData\\Local\\Temp",
       "C:\\Users\\louis\\kDrive\\CFC28\\Semestre 3 - 4\\informatique\\217 Concevoir, planifier et mettre en place un service pour l'IoE\\Projet\\weather-station\\src\\plugins\\weather\\render",
-      "C:\\Users\\louis\\kDrive\\CFC28\\Semestre 3 - 4\\informatique\\217 Concevoir, planifier et mettre en place un service pour l'IoE\\Projet\\weather-station\\src\\plugins\\weather"
+      "C:\\Users\\louis\\kDrive\\CFC28\\Semestre 3 - 4\\informatique\\217 Concevoir, planifier et mettre en place un service pour l'IoE\\Projet\\weather-station\\src\\plugins\\weather",
+      "c:\\Users\\louis\\kDrive\\CFC28\\Semestre 3 - 4\\informatique\\217 Concevoir, planifier et mettre en place un service pour l'IoE\\Projet\\weather-station",
+      "c:\\Users\\louis\\kDrive\\CFC28\\Semestre 3 - 4\\informatique\\217 Concevoir, planifier et mettre en place un service pour l''''IoE\\Projet\\weather-station"
     ]
   }
 }
