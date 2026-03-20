@@ -164,7 +164,8 @@ def generate_startup_image(dimensions=(800,480)):
 
     image_draw.text(
         (width / 2, height * 0.34),
-        "Your display is ready. Open the web interface from a browser on the same network.",
+        "Your display is ready.
+Open the web interface from a browser on the same network.",
         anchor="mm",
         fill=muted_color,
         font=get_font("Jost", subtitle_font_size),
