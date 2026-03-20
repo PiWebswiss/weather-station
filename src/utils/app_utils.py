@@ -154,6 +154,8 @@ def generate_startup_image(dimensions=(800,480)):
     url_font_size = int(width * 0.029)
     footer_font_size = int(width * 0.022)
 
+    # Remove that because it's not nice 
+    """  
     image_draw.text(
         (width / 2, height * 0.24),
         "Hi, there!",
@@ -168,7 +170,7 @@ def generate_startup_image(dimensions=(800,480)):
         anchor="mm",
         fill=muted_color,
         font=get_font("Jost", subtitle_font_size),
-    )
+    ) """
 
     box_left = int(width * 0.16)
     box_right = int(width * 0.84)
