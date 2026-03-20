@@ -150,7 +150,16 @@ class RefreshTask:
 
                 self.condition.notify_all()  # Wake the thread to process manual update
 
-            self.refresh_event.wait()
+            # 120-second timeout: if the background thread hangs (e.g. Chromium OOM),
+            # this unblocks the HTTP request instead of hanging the server forever.
+            finished = self.refresh_event.wait(timeout=120)
+            if not finished:
+                raise RuntimeError(
+                    "Display update timed out after 120 s. "
+                    "This usually means Chromium ran out of memory. "
+                    "Try increasing swap: sudo dphys-swapfile swapoff && "
+                    "edit /etc/dphys-swapfile CONF_SWAPSIZE=512 && sudo dphys-swapfile swapon"
+                )
             if self.refresh_result.get("exception"):
                 raise self.refresh_result.get("exception")
         else:

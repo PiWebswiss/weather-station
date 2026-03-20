@@ -176,3 +176,7 @@ mock_display_output/
 /src/static/scripts/calendar.min.js
 /src/static/styles/select2.min.css
 
+# TO REMOVE: Temporary files created during development
+rapport_station_meteo_eink_v2.docx
+laboratoire - CFC28.pdf
+DEVLOG.md

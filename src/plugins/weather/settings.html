@@ -96,7 +96,6 @@
 }
 .toggle-item:hover { background: var(--accent-soft, rgba(47,111,106,.12)); }
 .toggle-item input[type=checkbox] { accent-color: var(--accent, #2f6f6a); width:16px; height:16px; flex-shrink:0; }
-.toggle-item-icon { font-size: 1rem; flex-shrink: 0; }
 .toggle-item-label { font-size: .88rem; }
 
 /* loc buttons */
@@ -180,27 +179,22 @@
     <div class="toggle-grid">
         <label class="toggle-item">
             <input type="checkbox" id="displayRefreshTime" name="displayRefreshTime" onclick="this.value=this.checked?'true':'false';">
-            <span class="toggle-item-icon">🕐</span>
             <span class="toggle-item-label">Refresh time</span>
         </label>
         <label class="toggle-item">
             <input type="checkbox" id="displayMetrics" name="displayMetrics" onclick="this.value=this.checked?'true':'false';">
-            <span class="toggle-item-icon">📊</span>
             <span class="toggle-item-label">Metrics</span>
         </label>
         <label class="toggle-item">
             <input type="checkbox" id="displayGraph" name="displayGraph" onclick="this.value=this.checked?'true':'false';">
-            <span class="toggle-item-icon">📈</span>
             <span class="toggle-item-label">Hourly graph</span>
         </label>
         <label class="toggle-item">
             <input type="checkbox" id="displayRain" name="displayRain" onclick="this.value=this.checked?'true':'false';">
-            <span class="toggle-item-icon">🌧</span>
             <span class="toggle-item-label">Rain amount</span>
         </label>
         <label class="toggle-item">
             <input type="checkbox" id="moonPhase" name="moonPhase" onclick="this.value=this.checked?'true':'false';">
-            <span class="toggle-item-icon">🌙</span>
             <span class="toggle-item-label">Moon phase</span>
         </label>
     </div>
@@ -285,7 +279,7 @@
 <script>
     function updateTitleOptions(provider) {
         const titleLocationRadio = document.getElementById('title-location');
-        const titleLocationLabel = titleLocationRadio.closest('label');
+        const titleLocationLabel = document.querySelector('label[for="title-location"]') || titleLocationRadio.closest('label');
         const titleCustomRadio = document.getElementById('title-custom');
         const customTitleInput = document.getElementById('customTitle');
         const tzRow = document.getElementById('tzRow');
@@ -479,22 +473,6 @@
             document.getElementById('moonPhase').value = 'false';
             document.getElementById('weatherTimeZone').value = 'locationTimeZone';
             document.getElementById('partialZone').value = 'all';
-        }
-
-        // Auto-detect location via IP if no location is set
-        if (!$lat.value) {
-            fetch('https://ipapi.co/json/')
-                .then(r => r.json())
-                .then(d => {
-                    if (d.latitude && d.longitude) {
-                        setCoords(d.latitude, d.longitude);
-                        document.getElementById('gpsStatus').textContent = 'Location auto-detected from IP';
-                        document.getElementById('gpsStatus').style.color = 'var(--muted)';
-                        // set city search box too
-                        if (d.city) document.getElementById('citySearch').value = (d.city + (d.country_name ? ', ' + d.country_name : ''));
-                    }
-                })
-                .catch(() => {});
         }
 
         document.getElementById('weatherProvider').value = weatherProvider;

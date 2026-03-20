@@ -149,15 +149,32 @@ def take_screenshot(target, dimensions, timeout_ms=None):
             "--mute-audio",
             "--renderer-process-limit=1",
             "--no-zygote",
-            "--no-sandbox"
+            "--no-sandbox",
+            # Memory-saving flags — critical on Pi Zero 2W (512 MB RAM)
+            "--disable-features=VizDisplayCompositor",
+            "--memory-pressure-off",
+            "--max-old-space-size=128",
+            "--single-process",          # avoids spawning a separate renderer process
+            "--disable-software-rasterizer",
+            "--disable-3d-apis",
         ]
         if timeout_ms:
             command.append(f"--timeout={timeout_ms}")
-        result = subprocess.run(command, capture_output=True, check=False)
+
+        # Hard 90-second timeout: on Pi Zero 2W, Chromium can hang indefinitely
+        # if RAM is exhausted, crashing the Flask server.
+        process_timeout = (timeout_ms / 1000 + 10) if timeout_ms else 90
+        try:
+            result = subprocess.run(command, capture_output=True, check=False, timeout=process_timeout)
+        except subprocess.TimeoutExpired:
+            logger.error(f"Screenshot timed out after {process_timeout}s — Chromium may be OOM. "
+                         "Consider increasing swap on the Pi or using a lower resolution.")
+            return None
 
         # Check if the process failed or the output file is missing
         if result.returncode != 0 or not os.path.exists(img_file_path):
-            logger.error(f"Failed to take screenshot (return code: {result.returncode})")
+            stderr_text = result.stderr.decode("utf-8", errors="replace")[:500] if result.stderr else ""
+            logger.error(f"Failed to take screenshot (return code: {result.returncode}). stderr: {stderr_text}")
             return None
 
         # Load the image using PIL

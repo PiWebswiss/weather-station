@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/louis/kDrive/CFC28/**)",
+      "Bash(powershell -Command \"Get-ChildItem -Path \"\"C:\\\\Users\\\\louis\\\\kDrive\\\\CFC28\\\\Semestre 3 - 4\\\\informatique\\\\217 Concevoir, planifier et mettre en place un service pour l''''IoE\\\\Projet\\\\weather-station\"\" -Recurse | Select-Object -ExpandProperty FullName\")",
+      "Bash(powershell -Command \"Get-Item -Path \"\"C:\\\\Users\\\\louis\\\\kDrive\\\\CFC28\\\\Semestre 3 - 4\\\\informatique\\\\217 Concevoir, planifier et mettre en place un service pour l''IoE\\\\Projet\\\\weather-station\"\" | Select-Object FullName, LinkType, Target\")",
+      "Bash(powershell -Command \":*)",
+      "Bash(git ls-tree:*)",
+      "Bash(git config:*)",
+      "Bash(git -C \"C:/Users/louis/kDrive/CFC28/Semestre 3 - 4/informatique/217 Concevoir, planifier et mettre en place un service pour l''''IoE/Projet/weather-station\" log --oneline)",
+      "Bash(git -C \"C:/Users/louis\" log --oneline)",
+      "Read(//c/Users/louis/**)",
+      "Bash(py -c \"import ast; ast.parse\\(open\\(''C:/Users/louis/kDrive/CFC28/Semestre 3 - 4/informatique/217 Concevoir, planifier et mettre en place un service pour l\\\\''IoE/Projet/weather-station/src/plugins/weather/weather.py'', encoding=''utf-8''\\).read\\(\\)\\); print\\(''weather.py OK''\\)\")"
+    ],
+    "additionalDirectories": [
+      "\\tmp",
+      "C:\\Users\\louis\\AppData\\Local\\Temp",
+      "C:\\Users\\louis\\kDrive\\CFC28\\Semestre 3 - 4\\informatique\\217 Concevoir, planifier et mettre en place un service pour l'IoE\\Projet\\weather-station\\src\\plugins\\weather\\render",
+      "C:\\Users\\louis\\kDrive\\CFC28\\Semestre 3 - 4\\informatique\\217 Concevoir, planifier et mettre en place un service pour l'IoE\\Projet\\weather-station\\src\\plugins\\weather"
+    ]
+  }
+}

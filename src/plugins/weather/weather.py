@@ -122,8 +122,8 @@ class Weather(BasePlugin):
                 lat = geo.get("lat")
                 long = geo.get("lon")
 
-        if not lat or not long:
-            raise RuntimeError("Latitude and Longitude are required.")
+        if lat is None or long is None:
+            raise RuntimeError("Latitude and Longitude are required. Use the location search or GPS button to set your location.")
 
         units = settings.get('units')
         if not units or units not in ['metric', 'imperial', 'standard']:

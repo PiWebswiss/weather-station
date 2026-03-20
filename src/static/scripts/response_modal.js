@@ -14,17 +14,27 @@
    */
   window.showResponseModal = function (type, message, autoCloseMs) {
     var modal = document.getElementById('responseModal');
+    var content = document.getElementById('modalContent');
     var msg = document.getElementById('modalMessage');
-    var icon = document.getElementById('toastIcon');
-    if (!modal || !msg) return;
+    if (!modal || !content || !msg) return;
+
+    // Set message
     msg.textContent = message;
-    modal.className = 'toast-notification ' + (type === 'success' ? 'success' : 'failure');
-    if (icon) icon.textContent = type === 'success' ? '✓' : '✕';
+
+    // Toggle success/failure styling
+    content.classList.remove('success', 'failure');
+    content.classList.add(type === 'success' ? 'success' : 'failure');
+
+    // Show
     modal.style.display = 'flex';
+
+    // Auto-close
     if (_autoCloseTimer) clearTimeout(_autoCloseTimer);
     var delay = (autoCloseMs === undefined) ? 4000 : autoCloseMs;
     if (delay > 0) {
-        _autoCloseTimer = setTimeout(function () { closeResponseModal(); }, delay);
+      _autoCloseTimer = setTimeout(function () {
+        closeResponseModal();
+      }, delay);
     }
   };
 
