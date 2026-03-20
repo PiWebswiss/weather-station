@@ -116,7 +116,17 @@ class ButtonHandler:
             logger.info("Button refresh: no active playlist/plugin.")
             return
 
-        plugin_instance = playlist.get_next_plugin()
+        plugin_instance = self._get_current_plugin_instance(playlist)
+        if not plugin_instance:
+            logger.info("Button refresh: no current plugin could be determined.")
+            return
+
+        try:
+            playlist.current_plugin_index = playlist.plugins.index(plugin_instance)
+        except ValueError:
+            logger.info("Button refresh: current plugin is not present in the active playlist.")
+            return
+
         from refresh_task import PlaylistRefresh
         self.refresh_task.manual_update(PlaylistRefresh(playlist, plugin_instance, force=True))
 
@@ -147,3 +157,21 @@ class ButtonHandler:
 
         from refresh_task import PlaylistRefresh
         self.refresh_task.manual_update(PlaylistRefresh(playlist, plugin_instance, force=True))
+
+    def _get_current_plugin_instance(self, playlist):
+        """Return the plugin currently shown on the display for the active playlist."""
+        refresh_info = self.device_config.get_refresh_info()
+        if (
+            refresh_info
+            and refresh_info.playlist == playlist.name
+            and refresh_info.plugin_id
+            and refresh_info.plugin_instance
+        ):
+            current_plugin = playlist.find_plugin(refresh_info.plugin_id, refresh_info.plugin_instance)
+            if current_plugin:
+                return current_plugin
+
+        if playlist.current_plugin_index is not None and playlist.plugins:
+            return playlist.plugins[playlist.current_plugin_index % len(playlist.plugins)]
+
+        return playlist.plugins[0] if playlist.plugins else None

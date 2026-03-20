@@ -1,5 +1,5 @@
 [Unit]
-Description=InkyPi App
+Description=E-InkPi App
 After=network-online.target
 Wants=network-online.target
 

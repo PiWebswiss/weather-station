@@ -15,8 +15,8 @@ shift || true
 usage() {
     echo ""
     echo "Usage:"
-    echo "  inkypi run"
-    echo "  inkypi plugin <subcommand> [args]"
+    echo "  e-inkpi run"
+    echo "  e-inkpi plugin <subcommand> [args]"
     echo ""
 }
 

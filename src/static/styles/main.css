@@ -23,37 +23,39 @@
 }
 
 :root {
-  --bg: #f8f4ee;
-  --bg-2: #efe6dc;
-  --card: #fffdf8;
-  --card-2: #f9f3ea;
-  --ink: #1b1a18;
-  --muted: #6b6258;
-  --accent: #2f6f6a;
-  --accent-2: #c4683b;
-  --accent-soft: rgba(47, 111, 106, 0.12);
-  --border: rgba(27, 26, 24, 0.12);
-  --shadow: 0 18px 40px rgba(26, 18, 12, 0.12);
-  --radius: 16px;
-  --radius-lg: 22px;
-  --radius-sm: 12px;
-  --radius-xl: 28px;
-  --focus: rgba(47, 111, 106, 0.25);
+  --bg: #f4efe8;
+  --bg-2: #ece3d7;
+  --card: #fffdfa;
+  --card-2: #f7efe4;
+  --ink: #201c17;
+  --muted: #70655b;
+  --accent: #2d6962;
+  --accent-2: #b56439;
+  --accent-soft: rgba(45, 105, 98, 0.12);
+  --border: rgba(32, 28, 23, 0.1);
+  --shadow: 0 22px 52px rgba(28, 19, 13, 0.1);
+  --shadow-soft: 0 10px 24px rgba(28, 19, 13, 0.06);
+  --radius: 18px;
+  --radius-lg: 24px;
+  --radius-sm: 14px;
+  --radius-xl: 32px;
+  --focus: rgba(45, 105, 98, 0.22);
 }
 
 [data-theme="dark"] {
-  --bg: #1c1c1e;
-  --bg-2: #242426;
-  --card: #252528;
-  --card-2: #2d2d30;
-  --ink: #f2f2f7;
-  --muted: #aeaeb2;
-  --accent: #5ac8c4;
-  --accent-2: #f5a76e;
-  --accent-soft: rgba(90, 200, 196, 0.15);
-  --border: rgba(255, 255, 255, 0.1);
-  --shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
-  --focus: rgba(90, 200, 196, 0.3);
+  --bg: #161714;
+  --bg-2: #1d1f1b;
+  --card: #232520;
+  --card-2: #2b2e28;
+  --ink: #f4efe8;
+  --muted: #b4ab9f;
+  --accent: #66c7bf;
+  --accent-2: #e5a06c;
+  --accent-soft: rgba(102, 199, 191, 0.16);
+  --border: rgba(255, 255, 255, 0.08);
+  --shadow: 0 22px 46px rgba(0, 0, 0, 0.35);
+  --shadow-soft: 0 10px 24px rgba(0, 0, 0, 0.22);
+  --focus: rgba(102, 199, 191, 0.28);
 }
 
 * {
@@ -74,7 +76,7 @@ html, body {
 }
 
 body {
-  padding: 24px;
+  padding: 28px;
 }
 
 a {
@@ -83,13 +85,13 @@ a {
 }
 
 .frame {
-  max-width: 1120px;
-  margin: 0 auto;
+  max-width: 1180px;
+  margin: 0 auto 28px;
   background: var(--card);
   border-radius: var(--radius-xl);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
-  padding: 28px;
+  padding: 34px;
   animation: fade-up 0.6s ease-out both;
   position: relative;
   overflow: hidden;
@@ -130,16 +132,16 @@ a {
 button,
 input[type="submit"] {
   border: 0;
-  border-radius: 14px;
-  padding: 10px 16px;
-  background: var(--accent);
+  border-radius: 15px;
+  padding: 11px 17px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
   color: #fff;
   font-weight: 600;
   font-size: 0.95rem;
   letter-spacing: 0.2px;
   cursor: pointer;
   transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
-  box-shadow: 0 10px 22px rgba(47, 111, 106, 0.25);
+  box-shadow: 0 12px 24px rgba(45, 105, 98, 0.18);
 }
 
 .settings-button {
@@ -166,6 +168,7 @@ input[type="submit"] {
 .action-button:hover,
 button:hover {
   transform: translateY(-1px);
+  box-shadow: 0 16px 30px rgba(45, 105, 98, 0.16);
 }
 
 .action-button.compact {
@@ -183,10 +186,10 @@ button:hover {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: var(--card-2);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.45), rgba(0, 0, 0, 0.015)), var(--card-2);
   border-radius: var(--radius);
   border: 1px solid var(--border);
-  padding: 18px;
+  padding: 22px;
 }
 
 .image-container img {
@@ -361,14 +364,14 @@ button:hover {
   justify-content: flex-end;
   gap: 10px;
   flex-wrap: wrap;
-  margin-top: 16px;
+  margin-top: 22px;
 }
 
 .form-group {
-  margin-bottom: 14px;
+  margin-bottom: 16px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .form-group.nowrap {
@@ -388,24 +391,24 @@ button:hover {
 
 .settings-form {
   display: grid;
-  gap: 16px;
+  gap: 18px;
 }
 
 .settings-container,
 #settings-container {
   display: grid;
-  gap: 16px;
+  gap: 18px;
 }
 
 .settings-container > .form-group,
 #settings-container > .form-group,
 .settings-container > .collapsible,
 #settings-container > .collapsible {
-  background: var(--card-2);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.5), transparent), var(--card-2);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 16px;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.04);
+  padding: 18px;
+  box-shadow: var(--shadow-soft);
 }
 
 .form-input,
@@ -415,9 +418,10 @@ input[type="number"],
 input[type="password"] {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 10px 12px;
+  padding: 11px 13px;
   font-size: 1rem;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--ink);
 }
 
 .form-input:focus-visible,
@@ -484,8 +488,8 @@ input[type="radio"] {
 .image-option {
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 8px;
-  background: #fff;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.92);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -575,8 +579,8 @@ input[type="radio"] {
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
   max-width: 720px;
-  margin: 8vh auto;
-  padding: 22px;
+  margin: 7vh auto;
+  padding: 26px;
   box-shadow: var(--shadow);
   animation: fade-up 0.35s ease-out both;
 }
@@ -589,6 +593,7 @@ input[type="radio"] {
 }
 
 .loading-indicator {
+  display: none;
   border: 3px solid rgba(0,0,0,0.1);
   border-top: 3px solid var(--accent);
   border-radius: 50%;
@@ -610,8 +615,8 @@ input[type="radio"] {
 /* ── Toast notifications ──────────────────────────────────────────────── */
 .toast-notification {
   position: fixed;
-  top: 62px;
-  right: 20px;
+  top: 74px;
+  right: 24px;
   z-index: 9999;
   display: flex;
   align-items: center;
@@ -622,7 +627,7 @@ input[type="radio"] {
   border-radius: 14px;
   border: 1px solid var(--border);
   background: var(--card);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  box-shadow: 0 18px 38px rgba(0,0,0,0.16);
   animation: toast-slide-in 0.3s cubic-bezier(.22,1,.36,1);
 }
 .toast-notification.success { border-left: 4px solid #34c759; }
@@ -642,10 +647,10 @@ input[type="radio"] {
 
 @media (max-width: 720px) {
   body {
-    padding: 12px;
+    padding: 14px;
   }
   .frame {
-    padding: 18px;
+    padding: 22px 18px;
   }
   .header {
     gap: 8px;
@@ -662,7 +667,10 @@ input[type="radio"] {
 body.wp-admin {
   padding: 0;
   margin: 0;
-  background: var(--bg);
+  background:
+    radial-gradient(960px 560px at 0% -12%, rgba(45, 105, 98, 0.12), transparent 60%),
+    radial-gradient(780px 420px at 108% 0%, rgba(181, 100, 57, 0.12), transparent 58%),
+    linear-gradient(180deg, var(--bg), var(--bg-2));
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -673,19 +681,21 @@ body.wp-admin {
   position: sticky;
   top: 0;
   z-index: 200;
-  height: 46px;
-  background: var(--ink);
+  min-height: 58px;
+  background: rgba(23, 20, 17, 0.92);
   color: rgba(255,255,255,0.92);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
+  padding: 10px 24px;
   gap: 16px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  box-shadow: 0 6px 22px rgba(0,0,0,0.12);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 
 [data-theme="dark"] .adminbar {
-  background: #111113;
+  background: rgba(13, 14, 12, 0.92);
   border-bottom: 1px solid var(--border);
 }
 
@@ -706,7 +716,8 @@ body.wp-admin {
 .adminbar-links {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .adminbar-link {
@@ -715,9 +726,9 @@ body.wp-admin {
   box-shadow: none;
   color: rgba(255,255,255,0.75);
   font-size: 0.85rem;
-  font-weight: 500;
-  padding: 6px 10px;
-  border-radius: 8px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 999px;
   transition: background 0.15s, color 0.15s;
   cursor: pointer;
   text-decoration: none;
@@ -728,9 +739,10 @@ body.wp-admin {
 }
 
 .adminbar-link:hover {
-  background: rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.14);
   color: #fff;
   transform: none;
+  box-shadow: none;
 }
 
 .adminbar-link.dark-mode-toggle::before {
@@ -745,27 +757,32 @@ body.wp-admin {
 /* ── Two-column layout ──────────────────────────────────────────────────── */
 .wp-layout {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: 250px 1fr;
   flex: 1;
-  min-height: calc(100vh - 46px);
+  min-height: calc(100vh - 58px);
 }
 
 /* ── Sidebar ────────────────────────────────────────────────────────────── */
 .wp-sidebar {
-  background: var(--card);
+  background: rgba(255, 253, 250, 0.72);
   border-right: 1px solid var(--border);
-  padding: 20px 0 40px;
+  padding: 24px 0 42px;
   position: sticky;
-  top: 46px;
-  height: calc(100vh - 46px);
+  top: 58px;
+  height: calc(100vh - 58px);
   overflow-y: auto;
+  backdrop-filter: blur(16px);
+}
+
+[data-theme="dark"] .wp-sidebar {
+  background: rgba(35, 37, 32, 0.72);
 }
 
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 0 12px;
+  gap: 6px;
+  padding: 0 16px;
 }
 
 .sidebar-section-label {
@@ -774,19 +791,19 @@ body.wp-admin {
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--muted);
-  padding: 14px 8px 4px;
-  margin-top: 4px;
+  padding: 14px 10px 2px;
+  margin-top: 8px;
 }
 
 .sidebar-link {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 9px 12px;
+  padding: 11px 14px;
   border-radius: var(--radius-sm);
   color: var(--ink);
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-size: 0.92rem;
+  font-weight: 600;
   text-decoration: none;
   transition: background 0.15s, color 0.15s;
   border: 1px solid transparent;
@@ -800,7 +817,8 @@ body.wp-admin {
 .sidebar-link:hover {
   background: var(--accent-soft);
   color: var(--accent);
-  border-color: rgba(47,111,106,0.15);
+  border-color: rgba(45,105,98,0.18);
+  box-shadow: var(--shadow-soft);
 }
 
 .sidebar-link:hover svg { opacity: 1; }
@@ -809,27 +827,28 @@ body.wp-admin {
   background: var(--accent-soft);
   color: var(--accent);
   font-weight: 600;
-  border-color: rgba(47,111,106,0.2);
+  border-color: rgba(45,105,98,0.22);
+  box-shadow: inset 0 0 0 1px rgba(45,105,98,0.06);
 }
 
 .sidebar-link.active svg { opacity: 1; }
 
 /* ── Main content area ──────────────────────────────────────────────────── */
 .wp-main {
-  padding: 28px;
+  padding: 34px 34px 40px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  background: var(--bg);
+  gap: 28px;
+  background: transparent;
 }
 
 /* ── Cards ──────────────────────────────────────────────────────────────── */
 .wp-card {
-  background: var(--card);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.32), transparent), var(--card);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+  box-shadow: var(--shadow-soft);
   animation: fade-up 0.45s ease-out both;
 }
 
@@ -838,9 +857,9 @@ body.wp-admin {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 16px 20px;
+  padding: 18px 22px;
   border-bottom: 1px solid var(--border);
-  background: var(--card-2);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.24), transparent), var(--card-2);
 }
 
 .wp-card-title {
@@ -859,8 +878,8 @@ body.wp-admin {
 .preview-card .image-container {
   border: none;
   border-radius: 0;
-  background: var(--card-2);
-  padding: 24px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.24), transparent), var(--card-2);
+  padding: 28px;
 }
 
 .preview-card .preview-img {
@@ -872,9 +891,10 @@ body.wp-admin {
 .preview-status {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-size: 0.82rem;
   color: var(--muted);
+  font-weight: 600;
 }
 
 .status-dot {
@@ -892,13 +912,13 @@ body.wp-admin {
 
 /* ── Ghost button ───────────────────────────────────────────────────────── */
 .wp-btn-ghost {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.5);
   color: var(--ink);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 6px 12px;
+  padding: 8px 13px;
   font-size: 0.85rem;
-  font-weight: 500;
+  font-weight: 600;
   box-shadow: none;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
@@ -908,6 +928,7 @@ body.wp-admin {
   background: var(--card-2);
   border-color: var(--accent);
   transform: none;
+  box-shadow: none;
 }
 
 .wp-btn-ghost.active {
@@ -919,35 +940,36 @@ body.wp-admin {
 /* ── Plugin items (WordPress-like rows) ─────────────────────────────────── */
 .plugins-container {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 0;
-  padding: 8px 12px;
+  grid-template-columns: repeat(auto-fill, minmax(216px, 1fr));
+  gap: 10px;
+  padding: 14px 14px 16px;
 }
 
 .plugin-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 14px;
-  border-radius: var(--radius-sm);
-  border: 1px solid transparent;
+  padding: 14px 15px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
   color: var(--ink);
   text-decoration: none;
   transition: background 0.15s, border-color 0.15s, transform 0.15s;
   position: relative;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.3), transparent), var(--card);
 }
 
 .plugin-item:hover {
   background: var(--accent-soft);
-  border-color: rgba(47,111,106,0.2);
-  transform: none;
-  box-shadow: none;
+  border-color: rgba(45,105,98,0.24);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-soft);
 }
 
 .plugin-icon-wrap {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
   background: var(--card-2);
   border: 1px solid var(--border);
   display: flex;
@@ -964,8 +986,8 @@ body.wp-admin {
 
 .plugin-name {
   flex: 1;
-  font-weight: 500;
-  font-size: 0.92rem;
+  font-weight: 600;
+  font-size: 0.94rem;
 }
 
 .plugin-arrow {
@@ -1014,5 +1036,19 @@ body.wp-admin {
     font-size: 0.82rem;
   }
 
-  .wp-main { padding: 16px; }
+  .wp-main { padding: 18px 16px 24px; }
+}
+
+.page-shell {
+  padding: 28px;
+}
+
+.page-back {
+  margin-bottom: 18px;
+}
+
+@media (max-width: 720px) {
+  .page-shell {
+    padding: 18px 16px 24px;
+  }
 }

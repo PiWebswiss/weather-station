@@ -252,6 +252,320 @@
     transition: height .2s, border-radius .15s;
     letter-spacing: .03em;
 }
+
+/* Display composer */
+.composer-layout {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+.composer-stage {
+    flex: 1 1 380px;
+    min-width: 320px;
+}
+.composer-sidebar {
+    flex: 0 0 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.composer-toolbar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+.composer-toolbar .action-button {
+    padding: 8px 14px;
+    font-size: .88rem;
+}
+.composer-preview {
+    position: relative;
+    width: 100%;
+    max-width: 560px;
+    aspect-ratio: 5 / 3;
+    overflow: hidden;
+    border-radius: 18px;
+    border: 1px solid var(--border, rgba(0,0,0,.12));
+    background:
+        radial-gradient(circle at 50% 0%, rgba(149,169,200,.16), transparent 44%),
+        linear-gradient(180deg, #fbfcff, #f3f7fb);
+    box-shadow: 0 12px 28px rgba(26,18,12,.08);
+}
+.composer-base {
+    position: absolute;
+    inset: 0;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.composer-base-title {
+    width: 48%;
+    height: 12px;
+    margin: 0 auto;
+    border-radius: 999px;
+    background: rgba(78, 94, 125, 0.16);
+}
+.composer-base-date {
+    width: 30%;
+    height: 8px;
+    margin: 0 auto;
+    border-radius: 999px;
+    background: rgba(119, 134, 164, 0.16);
+}
+.composer-base-current {
+    display: grid;
+    grid-template-columns: 1fr 0.75fr 1fr;
+    gap: 10px;
+    align-items: stretch;
+    min-height: 82px;
+}
+.composer-base-card,
+.composer-base-forecast-card {
+    border-radius: 14px;
+    background: rgba(255,255,255,.72);
+    border: 1px solid rgba(149, 169, 200, 0.16);
+}
+.composer-base-card.icon {
+    min-height: 82px;
+}
+.composer-base-card.temp {
+    min-height: 82px;
+}
+.composer-base-card.stats {
+    min-height: 82px;
+}
+.composer-base-graph {
+    height: 38px;
+    border-radius: 12px;
+    background:
+        linear-gradient(180deg, rgba(255,255,255,.8), rgba(255,255,255,.46)),
+        linear-gradient(90deg, rgba(149, 169, 200, 0.12), rgba(242, 191, 119, 0.16), rgba(149, 169, 200, 0.12));
+    border: 1px solid rgba(149, 169, 200, 0.16);
+}
+.composer-base-forecast {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 6px;
+}
+.composer-base-forecast-card {
+    min-height: 44px;
+}
+.composer-overlay-layer {
+    position: absolute;
+    inset: 0;
+}
+.composer-overlay-item {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    min-width: 22px;
+    min-height: 18px;
+    padding: 4px 6px;
+    color: var(--ink, #222);
+    font-weight: 600;
+    overflow: hidden;
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+    box-shadow: 0 4px 12px rgba(26,18,12,.08);
+}
+.composer-overlay-item.dragging {
+    cursor: grabbing;
+    box-shadow: 0 12px 26px rgba(26,18,12,.16);
+}
+.composer-overlay-item.selected {
+    outline: 2px solid var(--accent, #2f6f6a);
+    outline-offset: 1px;
+}
+.composer-overlay-item.style-none {
+    box-shadow: none;
+    border: none;
+    background: transparent;
+}
+.composer-overlay-item.style-card {
+    border-radius: 12px;
+    border: 1px solid rgba(149,169,200,.3);
+}
+.composer-overlay-item.style-pill {
+    border-radius: 999px;
+    border: 1px solid rgba(149,169,200,.3);
+}
+.composer-overlay-item.align-center {
+    justify-content: center;
+    text-align: center;
+}
+.composer-overlay-item.align-right {
+    justify-content: flex-end;
+    text-align: right;
+}
+.composer-overlay-item-text {
+    width: 100%;
+    line-height: 1.15;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+.composer-overlay-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+.composer-overlay-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: inherit;
+    background: rgba(149,169,200,.16);
+    color: var(--muted);
+    font-size: .78rem;
+    text-align: center;
+}
+.composer-tip {
+    margin: 10px 0 0;
+    color: var(--muted);
+    font-size: .82rem;
+}
+.composer-panel {
+    background: var(--bg-2, #efe6dc);
+    border: 1px solid var(--border, rgba(0,0,0,.08));
+    border-radius: 14px;
+    padding: 12px;
+}
+.composer-panel-title {
+    margin: 0 0 10px;
+    font-size: .82rem;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+.composer-layers {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.composer-layer-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    border-radius: 12px;
+    border: 1px solid var(--border, rgba(0,0,0,.1));
+    background: var(--card, #fff);
+}
+.composer-layer-row.selected {
+    border-color: var(--accent, #2f6f6a);
+    box-shadow: 0 0 0 2px var(--focus, rgba(47,111,106,.14));
+}
+.composer-layer-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.composer-layer-type {
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: var(--accent-soft, rgba(47,111,106,.12));
+    color: var(--accent, #2f6f6a);
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+}
+.composer-layer-name {
+    flex: 1;
+    min-width: 0;
+    font-size: .9rem;
+    font-weight: 600;
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.composer-layer-actions,
+.composer-layer-subactions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.composer-mini-btn {
+    border: 1px solid var(--border, rgba(0,0,0,.12));
+    background: var(--card-2, #f9f3ea);
+    color: var(--ink);
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: .76rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+.composer-mini-btn:hover {
+    background: var(--accent-soft, rgba(47,111,106,.12));
+    color: var(--accent);
+}
+.composer-mini-btn.is-danger:hover {
+    background: rgba(192, 48, 48, 0.12);
+    color: #b43a3a;
+}
+.composer-image-status {
+    color: var(--muted);
+    font-size: .78rem;
+}
+.composer-empty {
+    color: var(--muted);
+    font-size: .88rem;
+    line-height: 1.5;
+}
+.composer-inspector {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.composer-inspector-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+.composer-inspector .form-input[type="number"],
+.composer-inspector .form-input[type="color"],
+.composer-inspector .form-input[type="text"],
+.composer-inspector .form-input[type="textarea"] {
+    width: 100%;
+}
+.composer-inspector textarea.form-input {
+    min-height: 84px;
+    resize: vertical;
+}
+.composer-field-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.composer-field-stack label {
+    margin: 0;
+}
+.composer-hidden-upload {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+@media (max-width: 880px) {
+    .composer-stage,
+    .composer-sidebar {
+        min-width: 100%;
+        flex-basis: 100%;
+    }
+
+    .composer-inspector-grid {
+        grid-template-columns: 1fr;
+    }
+}
 </style>
 
 <!-- ── SECTION 1: Location ───────────────────────────────────────── -->
@@ -290,7 +604,7 @@
         <select id="weatherProvider" name="weatherProvider" class="form-input" onchange="updateTitleOptions(this.value)">
             <option value="MeteoSwiss">MeteoSwiss (Switzerland only, no key)</option>
             <option value="OpenMeteo">Open-Meteo (free, global, no key)</option>
-            <option value="OpenWeatherMap">OpenWeatherMap (API key required)</option>
+            <option value="OpenWeatherMap" disabled>OpenWeatherMap (coming soon)</option>
         </select>
     </div>
     <div class="wx-row">
@@ -397,12 +711,167 @@
         <!-- Right: preview canvas -->
         <div style="flex:0 0 280px;">
             <p style="font-size:.8rem;color:var(--muted);margin:0 0 8px;">Live preview</p>
-            <div id="einkPreview" style="width:280px;height:168px;background:#111;border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:4px;overflow:hidden;">
+            <div id="einkPreview" style="width:280px;height:168px;">
                 <!-- preview blocks inserted by JS -->
             </div>
         </div>
     </div>
     <input type="hidden" id="layoutConfig" name="layoutConfig" value="">
+</div>
+
+<!-- ── SECTION 5B: Display Composer ─────────────────────────────── -->
+<div class="wx-section" id="displayComposer">
+    <p class="wx-section-title">🧩 Display Composer</p>
+    <p style="margin:0 0 12px;color:var(--muted);font-size:.9rem;line-height:1.55;">
+        Add your own text notes or images, drag them on the preview, then save or update the display.
+        This is the personalization layer that is rendered on top of the weather screen.
+    </p>
+
+    <div class="composer-layout">
+        <div class="composer-stage">
+            <div class="composer-toolbar">
+                <button type="button" class="action-button compact" id="addTextBlockBtn">+ Text Block</button>
+                <button type="button" class="action-button compact" id="addImageBlockBtn">+ Image Block</button>
+            </div>
+
+            <div class="composer-preview" id="composerPreview">
+                <div class="composer-base">
+                    <div class="composer-base-title"></div>
+                    <div class="composer-base-date"></div>
+                    <div class="composer-base-current">
+                        <div class="composer-base-card icon"></div>
+                        <div class="composer-base-card temp"></div>
+                        <div class="composer-base-card stats"></div>
+                    </div>
+                    <div class="composer-base-graph"></div>
+                    <div class="composer-base-forecast">
+                        <div class="composer-base-forecast-card"></div>
+                        <div class="composer-base-forecast-card"></div>
+                        <div class="composer-base-forecast-card"></div>
+                        <div class="composer-base-forecast-card"></div>
+                        <div class="composer-base-forecast-card"></div>
+                    </div>
+                </div>
+                <div id="composerOverlayLayer" class="composer-overlay-layer"></div>
+            </div>
+
+            <p class="composer-tip">
+                Drag blocks on the preview to position them. Use the inspector to change size, colors, text, or the uploaded image.
+            </p>
+        </div>
+
+        <div class="composer-sidebar">
+            <div class="composer-panel">
+                <p class="composer-panel-title">Layers</p>
+                <div id="composerBlocksList" class="composer-layers"></div>
+            </div>
+
+            <div class="composer-panel">
+                <p class="composer-panel-title">Inspector</p>
+                <div id="composerEmptyState" class="composer-empty">
+                    Select a block to edit it. You can add text or image elements, move them, then apply the changes to the display.
+                </div>
+
+                <div id="composerInspector" class="composer-inspector" hidden>
+                    <div class="composer-field-stack">
+                        <label for="composerBlockName" class="form-label">Layer Name</label>
+                        <input type="text" id="composerBlockName" class="form-input" placeholder="e.g. Family note">
+                    </div>
+
+                    <div class="composer-inspector-grid">
+                        <div class="composer-field-stack">
+                            <label class="form-label">Type</label>
+                            <div id="composerBlockType" class="composer-layer-type">Text</div>
+                        </div>
+                        <div class="composer-field-stack">
+                            <label for="composerBlockStyle" class="form-label">Shape</label>
+                            <select id="composerBlockStyle" class="form-input">
+                                <option value="none">None</option>
+                                <option value="card">Card</option>
+                                <option value="pill">Pill</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="composerTextFields">
+                        <div class="composer-field-stack">
+                            <label for="composerTextContent" class="form-label">Text</label>
+                            <textarea id="composerTextContent" class="form-input" placeholder="Type your note, quote, reminder or label…"></textarea>
+                        </div>
+                    </div>
+
+                    <div id="composerImageFields" hidden>
+                        <div class="composer-field-stack">
+                            <label class="form-label">Image</label>
+                            <div class="composer-layer-subactions">
+                                <button type="button" class="composer-mini-btn" id="composerChooseImageBtn">Choose Image</button>
+                                <span class="composer-image-status" id="composerImageStatus">No image selected</span>
+                            </div>
+                        </div>
+                        <div class="composer-field-stack">
+                            <label for="composerImageFit" class="form-label">Fit</label>
+                            <select id="composerImageFit" class="form-input">
+                                <option value="contain">Contain</option>
+                                <option value="cover">Cover</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="composer-inspector-grid">
+                        <div class="composer-field-stack">
+                            <label for="composerPosX" class="form-label">Left (%)</label>
+                            <input type="number" id="composerPosX" class="form-input" min="0" max="94" step="0.5">
+                        </div>
+                        <div class="composer-field-stack">
+                            <label for="composerPosY" class="form-label">Top (%)</label>
+                            <input type="number" id="composerPosY" class="form-input" min="0" max="92" step="0.5">
+                        </div>
+                        <div class="composer-field-stack">
+                            <label for="composerWidth" class="form-label">Width (%)</label>
+                            <input type="number" id="composerWidth" class="form-input" min="6" max="72" step="0.5">
+                        </div>
+                        <div class="composer-field-stack">
+                            <label for="composerHeight" class="form-label">Height (%)</label>
+                            <input type="number" id="composerHeight" class="form-input" min="6" max="62" step="0.5">
+                        </div>
+                    </div>
+
+                    <div class="composer-inspector-grid">
+                        <div class="composer-field-stack">
+                            <label for="composerFontSize" class="form-label">Text Size</label>
+                            <input type="number" id="composerFontSize" class="form-input" min="10" max="56" step="1">
+                        </div>
+                        <div class="composer-field-stack">
+                            <label for="composerTextAlign" class="form-label">Align</label>
+                            <select id="composerTextAlign" class="form-input">
+                                <option value="left">Left</option>
+                                <option value="center">Center</option>
+                                <option value="right">Right</option>
+                            </select>
+                        </div>
+                        <div class="composer-field-stack">
+                            <label for="composerTextColor" class="form-label">Text Color</label>
+                            <input type="color" id="composerTextColor" class="form-input" value="#4e5e7d">
+                        </div>
+                        <div class="composer-field-stack">
+                            <label for="composerBackgroundColor" class="form-label">Background</label>
+                            <input type="color" id="composerBackgroundColor" class="form-input" value="#ffffff">
+                        </div>
+                    </div>
+
+                    <div class="composer-field-stack">
+                        <label for="composerOpacity" class="form-label">Opacity</label>
+                        <input type="range" id="composerOpacity" min="0.2" max="1" step="0.05" value="1">
+                    </div>
+
+                    <button type="button" class="composer-mini-btn is-danger" id="removeSelectedBlockBtn">Remove Selected Block</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <input type="hidden" id="customOverlayConfig" name="customOverlayConfig" value="">
+    <div id="composerFileInputs"></div>
 </div>
 
 <!-- ── SECTION 4: Advanced ──────────────────────────────────────── -->
@@ -498,7 +967,7 @@
         let latitude = parseFloat($lat.value) || 0;
         let longitude = parseFloat($lon.value) || 0;
         let selectedTitle = 'location';
-        let weatherProvider = 'OpenMeteo';
+        let weatherProvider = 'MeteoSwiss';
         let map, marker;
 
         // ── City search (Nominatim) ──────────────────────────────────────
@@ -673,6 +1142,7 @@
 
         // ── Layout Designer ──────────────────────────────────────────────
         initLayoutEditor();
+        initDisplayComposer();
     });
 
     // ────────────────────────────────────────────────────────────────────
@@ -696,13 +1166,13 @@
         forecast:    '#06b6d4',
     };
 
-    // Colors for the e-ink preview blocks (dark content on light paper)
+    // Colors for the e-ink preview blocks (neutral, paper-like)
     const ZONE_COLORS = {
-        header:      '#1e293b',
-        temperature: '#1e3a5f',
-        metrics:     '#14532d',
-        graph:       '#3b1f5e',
-        forecast:    '#1c3c4a',
+        header:      'rgba(0,0,0,0.06)',
+        temperature: 'rgba(0,0,0,0.09)',
+        metrics:     'rgba(0,0,0,0.06)',
+        graph:       'rgba(0,0,0,0.06)',
+        forecast:    'rgba(0,0,0,0.06)',
     };
 
     const ZONE_HEIGHTS = {
@@ -713,6 +1183,11 @@
 
     // Internal state — array of zone objects
     let zones = [];
+    let overlayBlocks = [];
+    let selectedOverlayBlockId = null;
+    let activeOverlayDrag = null;
+    let overlayDragFrame = null;
+    let composerPreviewUrls = {};
 
     function defaultZones() {
         return ZONE_DEFS.map(def => ({
@@ -860,12 +1335,13 @@
     function createPreviewBlock(zone) {
         const div = document.createElement('div');
         div.className = 'eink-zone-block';
-        div.style.background    = ZONE_COLORS[zone.id] || '#1e293b';
-        div.style.borderRadius  = zone.style === 'rounded' ? '5px' : '2px';
-        div.style.border        = zone.border ? '1px solid rgba(255,255,255,.18)' : 'none';
+        div.style.background    = ZONE_COLORS[zone.id] || 'rgba(0,0,0,0.06)';
+        div.style.borderRadius  = zone.style === 'rounded' ? '4px' : '1px';
+        div.style.border        = zone.border ? '1px solid rgba(0,0,0,.2)' : 'none';
         div.style.height        = ZONE_HEIGHTS[zone.size] || '34px';
         div.style.display       = zone.enabled ? 'flex' : 'none';
-        div.textContent         = zone.icon + '  ' + zone.label;
+        div.style.color         = 'rgba(0,0,0,0.55)';
+        div.textContent         = zone.label;
         return div;
     }
 
@@ -943,5 +1419,557 @@
         // Initial preview render and config save
         updatePreview();
         saveLayoutConfig();
+    }
+
+    function createOverlayId() {
+        return `overlay_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+    }
+
+    function clampComposerNumber(value, min, max, fallback) {
+        const numeric = Number(value);
+        if (!Number.isFinite(numeric)) return fallback;
+        return Math.max(min, Math.min(max, numeric));
+    }
+
+    function savedPathToStaticUrl(path) {
+        if (!path || typeof path !== 'string') return '';
+        const normalized = path.replaceAll('\\', '/');
+        const marker = '/static/';
+        const markerIndex = normalized.lastIndexOf(marker);
+        if (markerIndex !== -1) {
+            return normalized.slice(markerIndex);
+        }
+        const savedIndex = normalized.lastIndexOf('/images/saved/');
+        if (savedIndex !== -1) {
+            return `/static${normalized.slice(savedIndex)}`;
+        }
+        return '';
+    }
+
+    function defaultOverlayBlock(type) {
+        const id = createOverlayId();
+        return {
+            id,
+            type,
+            name: type === 'text' ? 'Text block' : 'Image block',
+            text: type === 'text' ? 'Add your own note' : '',
+            x: type === 'text' ? 6 : 74,
+            y: type === 'text' ? 8 : 10,
+            width: type === 'text' ? 28 : 16,
+            height: type === 'text' ? 10 : 18,
+            fontSize: 22,
+            textColor: '#4e5e7d',
+            backgroundColor: type === 'text' ? '#ffffff' : 'transparent',
+            style: type === 'text' ? 'card' : 'card',
+            align: 'left',
+            fit: 'contain',
+            opacity: 1,
+            imageKey: `designer_image_${id}`,
+            existingImagePath: '',
+        };
+    }
+
+    function parseSavedOverlayBlocks() {
+        let parsed = [];
+        if (pluginSettings && pluginSettings.customOverlayConfig) {
+            try {
+                const raw = JSON.parse(pluginSettings.customOverlayConfig);
+                if (Array.isArray(raw)) {
+                    parsed = raw;
+                }
+            } catch (error) {
+                parsed = [];
+            }
+        }
+
+        return parsed
+            .filter(block => block && typeof block === 'object' && ['text', 'image'].includes(block.type))
+            .map((block, index) => {
+                const type = block.type === 'image' ? 'image' : 'text';
+                const id = String(block.id || `overlay_saved_${index}`);
+                const imageKey = block.imageKey || `designer_image_${id}`;
+                return {
+                    id,
+                    type,
+                    name: block.name || (type === 'text' ? 'Text block' : 'Image block'),
+                    text: block.text || '',
+                    x: clampComposerNumber(block.x, 0, 94, type === 'text' ? 6 : 74),
+                    y: clampComposerNumber(block.y, 0, 92, type === 'text' ? 8 : 10),
+                    width: clampComposerNumber(block.width, 6, 72, type === 'text' ? 28 : 16),
+                    height: clampComposerNumber(block.height, 6, 62, type === 'text' ? 10 : 18),
+                    fontSize: clampComposerNumber(block.fontSize, 10, 56, 22),
+                    textColor: /^#[0-9a-fA-F]{6}$/.test(block.textColor || '') ? block.textColor : '#4e5e7d',
+                    backgroundColor: block.backgroundColor === 'transparent' || /^#[0-9a-fA-F]{6}$/.test(block.backgroundColor || '')
+                        ? (block.backgroundColor || 'transparent')
+                        : 'transparent',
+                    style: ['none', 'card', 'pill'].includes(block.style) ? block.style : 'card',
+                    align: ['left', 'center', 'right'].includes(block.align) ? block.align : 'left',
+                    fit: ['contain', 'cover'].includes(block.fit) ? block.fit : 'contain',
+                    opacity: clampComposerNumber(block.opacity, 0.2, 1, 1),
+                    imageKey,
+                    existingImagePath: pluginSettings[imageKey] || '',
+                };
+            });
+    }
+
+    function getSelectedOverlayBlock() {
+        return overlayBlocks.find(block => block.id === selectedOverlayBlockId) || null;
+    }
+
+    function getComposerFileWrapper(blockId) {
+        return document.querySelector(`#composerFileInputs .composer-file-wrapper[data-block-id="${blockId}"]`);
+    }
+
+    function getComposerUploadInput(blockId) {
+        const wrapper = getComposerFileWrapper(blockId);
+        return wrapper ? wrapper.querySelector('input[type="file"]') : null;
+    }
+
+    function ensureComposerFileInputForBlock(block) {
+        if (block.type !== 'image') return;
+
+        const container = document.getElementById('composerFileInputs');
+        if (!container) return;
+        if (getComposerFileWrapper(block.id)) return;
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'composer-file-wrapper';
+        wrapper.dataset.blockId = block.id;
+
+        const upload = document.createElement('input');
+        upload.type = 'file';
+        upload.accept = 'image/*';
+        upload.name = block.imageKey;
+        upload.id = `composerUpload_${block.id}`;
+        upload.className = 'composer-hidden-upload';
+        upload.addEventListener('change', () => {
+            if (composerPreviewUrls[block.id]) {
+                URL.revokeObjectURL(composerPreviewUrls[block.id]);
+                delete composerPreviewUrls[block.id];
+            }
+            if (upload.files && upload.files[0]) {
+                composerPreviewUrls[block.id] = URL.createObjectURL(upload.files[0]);
+            }
+            renderComposerBlocksList();
+            renderComposerPreview();
+            updateComposerInspector();
+        });
+        wrapper.appendChild(upload);
+
+        if (block.existingImagePath) {
+            const hidden = document.createElement('input');
+            hidden.type = 'hidden';
+            hidden.name = block.imageKey;
+            hidden.value = block.existingImagePath;
+            hidden.dataset.existingFor = block.id;
+            wrapper.appendChild(hidden);
+        }
+
+        container.appendChild(wrapper);
+    }
+
+    function syncComposerFileInputs() {
+        const container = document.getElementById('composerFileInputs');
+        if (!container) return;
+
+        const imageIds = new Set(overlayBlocks.filter(block => block.type === 'image').map(block => block.id));
+        overlayBlocks.filter(block => block.type === 'image').forEach(ensureComposerFileInputForBlock);
+
+        Array.from(container.querySelectorAll('.composer-file-wrapper')).forEach(wrapper => {
+            const blockId = wrapper.dataset.blockId;
+            if (!imageIds.has(blockId)) {
+                if (composerPreviewUrls[blockId]) {
+                    URL.revokeObjectURL(composerPreviewUrls[blockId]);
+                    delete composerPreviewUrls[blockId];
+                }
+                wrapper.remove();
+            }
+        });
+    }
+
+    function getComposerPreviewImageSrc(block) {
+        if (composerPreviewUrls[block.id]) {
+            return composerPreviewUrls[block.id];
+        }
+        return savedPathToStaticUrl(block.existingImagePath);
+    }
+
+    function openComposerFileDialog(blockId) {
+        const upload = getComposerUploadInput(blockId);
+        if (upload) upload.click();
+    }
+
+    function saveCustomOverlayConfig() {
+        const input = document.getElementById('customOverlayConfig');
+        if (!input) return;
+        input.value = JSON.stringify(overlayBlocks.map(block => ({
+            id: block.id,
+            type: block.type,
+            name: block.name,
+            text: block.text,
+            x: Number(block.x.toFixed(2)),
+            y: Number(block.y.toFixed(2)),
+            width: Number(block.width.toFixed(2)),
+            height: Number(block.height.toFixed(2)),
+            fontSize: Math.round(block.fontSize),
+            textColor: block.textColor,
+            backgroundColor: block.backgroundColor,
+            style: block.style,
+            align: block.align,
+            fit: block.fit,
+            opacity: Number(block.opacity.toFixed(2)),
+            imageKey: block.imageKey,
+        })));
+    }
+
+    function renderComposerBlocksList() {
+        const container = document.getElementById('composerBlocksList');
+        if (!container) return;
+        container.innerHTML = '';
+
+        if (!overlayBlocks.length) {
+            const empty = document.createElement('div');
+            empty.className = 'composer-empty';
+            empty.textContent = 'No custom blocks yet. Add a text or image block to start personalizing the display.';
+            container.appendChild(empty);
+            return;
+        }
+
+        overlayBlocks.forEach((block, index) => {
+            const row = document.createElement('div');
+            row.className = 'composer-layer-row' + (block.id === selectedOverlayBlockId ? ' selected' : '');
+            row.addEventListener('click', () => {
+                selectedOverlayBlockId = block.id;
+                renderComposerBlocksList();
+                renderComposerPreview();
+                updateComposerInspector();
+            });
+
+            const imageStatus = block.type === 'image'
+                ? (composerPreviewUrls[block.id]
+                    ? 'New file selected'
+                    : (block.existingImagePath ? 'Saved image linked' : 'No image selected'))
+                : '';
+
+            row.innerHTML = `
+                <div class="composer-layer-head">
+                    <span class="composer-layer-type">${block.type}</span>
+                    <span class="composer-layer-name">${block.name || (block.type === 'text' ? 'Text block' : 'Image block')}</span>
+                </div>
+                <div class="composer-layer-actions">
+                    <button type="button" class="composer-mini-btn" data-action="up">Up</button>
+                    <button type="button" class="composer-mini-btn" data-action="down">Down</button>
+                    <button type="button" class="composer-mini-btn is-danger" data-action="delete">Delete</button>
+                </div>
+                ${block.type === 'image' ? `
+                <div class="composer-layer-subactions">
+                    <button type="button" class="composer-mini-btn" data-action="image">Choose Image</button>
+                    <span class="composer-image-status">${imageStatus}</span>
+                </div>
+                ` : ''}
+            `;
+
+            row.querySelectorAll('[data-action]').forEach(btn => {
+                btn.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    const action = btn.dataset.action;
+                    if (action === 'up' && index > 0) {
+                        [overlayBlocks[index - 1], overlayBlocks[index]] = [overlayBlocks[index], overlayBlocks[index - 1]];
+                        saveCustomOverlayConfig();
+                        renderComposerBlocksList();
+                        renderComposerPreview();
+                        return;
+                    }
+                    if (action === 'down' && index < overlayBlocks.length - 1) {
+                        [overlayBlocks[index + 1], overlayBlocks[index]] = [overlayBlocks[index], overlayBlocks[index + 1]];
+                        saveCustomOverlayConfig();
+                        renderComposerBlocksList();
+                        renderComposerPreview();
+                        return;
+                    }
+                    if (action === 'delete') {
+                        removeOverlayBlock(block.id);
+                        return;
+                    }
+                    if (action === 'image') {
+                        openComposerFileDialog(block.id);
+                    }
+                });
+            });
+
+            container.appendChild(row);
+        });
+    }
+
+    function renderComposerPreview() {
+        const layer = document.getElementById('composerOverlayLayer');
+        if (!layer) return;
+        layer.innerHTML = '';
+
+        overlayBlocks.forEach(block => {
+            const element = document.createElement('div');
+            element.className = `composer-overlay-item style-${block.style} align-${block.align}` + (block.id === selectedOverlayBlockId ? ' selected' : '');
+            element.style.left = `${block.x}%`;
+            element.style.top = `${block.y}%`;
+            element.style.width = `${block.width}%`;
+            element.style.height = `${block.height}%`;
+            element.style.opacity = String(block.opacity);
+            element.style.background = block.backgroundColor || 'transparent';
+            element.style.zIndex = String(20 + overlayBlocks.findIndex(item => item.id === block.id));
+
+            if (block.type === 'text') {
+                const text = document.createElement('div');
+                text.className = 'composer-overlay-item-text';
+                text.textContent = block.text || 'Text block';
+                text.style.fontSize = `${Math.max(10, (block.fontSize / 480) * 168)}px`;
+                text.style.color = block.textColor;
+                text.style.textAlign = block.align;
+                element.appendChild(text);
+            } else {
+                const src = getComposerPreviewImageSrc(block);
+                if (src) {
+                    const image = document.createElement('img');
+                    image.src = src;
+                    image.style.objectFit = block.fit;
+                    element.appendChild(image);
+                } else {
+                    const placeholder = document.createElement('div');
+                    placeholder.className = 'composer-overlay-placeholder';
+                    placeholder.textContent = 'Choose image';
+                    element.appendChild(placeholder);
+                }
+            }
+
+            element.addEventListener('pointerdown', (event) => {
+                if (event.button !== undefined && event.button !== 0) return;
+                selectedOverlayBlockId = block.id;
+                renderComposerBlocksList();
+                renderComposerPreview();
+                updateComposerInspector();
+                startOverlayDrag(event, block.id);
+            });
+
+            layer.appendChild(element);
+        });
+    }
+
+    function startOverlayDrag(event, blockId) {
+        const preview = document.getElementById('composerPreview');
+        const block = overlayBlocks.find(item => item.id === blockId);
+        if (!preview || !block) return;
+
+        const rect = preview.getBoundingClientRect();
+        activeOverlayDrag = {
+            id: blockId,
+            startX: event.clientX,
+            startY: event.clientY,
+            initialX: block.x,
+            initialY: block.y,
+            previewWidth: rect.width,
+            previewHeight: rect.height,
+        };
+
+        const target = event.currentTarget;
+        if (target) target.classList.add('dragging');
+
+        document.addEventListener('pointermove', handleOverlayDragMove);
+        document.addEventListener('pointerup', stopOverlayDrag);
+    }
+
+    function handleOverlayDragMove(event) {
+        if (!activeOverlayDrag) return;
+        const block = overlayBlocks.find(item => item.id === activeOverlayDrag.id);
+        if (!block) return;
+
+        const deltaXPct = ((event.clientX - activeOverlayDrag.startX) / activeOverlayDrag.previewWidth) * 100;
+        const deltaYPct = ((event.clientY - activeOverlayDrag.startY) / activeOverlayDrag.previewHeight) * 100;
+
+        block.x = clampComposerNumber(activeOverlayDrag.initialX + deltaXPct, 0, 100 - block.width, block.x);
+        block.y = clampComposerNumber(activeOverlayDrag.initialY + deltaYPct, 0, 100 - block.height, block.y);
+
+        if (overlayDragFrame) cancelAnimationFrame(overlayDragFrame);
+        overlayDragFrame = requestAnimationFrame(() => {
+            renderComposerPreview();
+            updateComposerInspector();
+            saveCustomOverlayConfig();
+        });
+    }
+
+    function stopOverlayDrag() {
+        activeOverlayDrag = null;
+        document.removeEventListener('pointermove', handleOverlayDragMove);
+        document.removeEventListener('pointerup', stopOverlayDrag);
+        renderComposerPreview();
+    }
+
+    function updateComposerInspector() {
+        const block = getSelectedOverlayBlock();
+        const inspector = document.getElementById('composerInspector');
+        const emptyState = document.getElementById('composerEmptyState');
+        if (!inspector || !emptyState) return;
+
+        if (!block) {
+            inspector.hidden = true;
+            emptyState.hidden = false;
+            return;
+        }
+
+        inspector.hidden = false;
+        emptyState.hidden = true;
+
+        document.getElementById('composerBlockName').value = block.name || '';
+        document.getElementById('composerBlockType').textContent = block.type;
+        document.getElementById('composerBlockStyle').value = block.style;
+        document.getElementById('composerTextContent').value = block.text || '';
+        document.getElementById('composerPosX').value = Number(block.x.toFixed(1));
+        document.getElementById('composerPosY').value = Number(block.y.toFixed(1));
+        document.getElementById('composerWidth').value = Number(block.width.toFixed(1));
+        document.getElementById('composerHeight').value = Number(block.height.toFixed(1));
+        document.getElementById('composerFontSize').value = Math.round(block.fontSize);
+        document.getElementById('composerTextAlign').value = block.align;
+        document.getElementById('composerTextColor').value = block.textColor || '#4e5e7d';
+        document.getElementById('composerBackgroundColor').value = block.backgroundColor && block.backgroundColor !== 'transparent'
+            ? block.backgroundColor
+            : '#ffffff';
+        document.getElementById('composerOpacity').value = String(block.opacity);
+        document.getElementById('composerImageFit').value = block.fit || 'contain';
+
+        const isText = block.type === 'text';
+        document.getElementById('composerTextFields').hidden = !isText;
+        document.getElementById('composerImageFields').hidden = isText;
+        document.getElementById('composerFontSize').disabled = !isText;
+        document.getElementById('composerTextAlign').disabled = !isText;
+        document.getElementById('composerTextColor').disabled = !isText;
+
+        const imageStatus = document.getElementById('composerImageStatus');
+        if (imageStatus) {
+            imageStatus.textContent = isText
+                ? ''
+                : (composerPreviewUrls[block.id]
+                    ? 'New file selected'
+                    : (block.existingImagePath ? 'Saved image linked' : 'No image selected'));
+        }
+    }
+
+    function updateSelectedOverlayBlock(mutator) {
+        const block = getSelectedOverlayBlock();
+        if (!block) return;
+        mutator(block);
+        saveCustomOverlayConfig();
+        renderComposerBlocksList();
+        renderComposerPreview();
+        updateComposerInspector();
+    }
+
+    function removeOverlayBlock(blockId) {
+        overlayBlocks = overlayBlocks.filter(block => block.id !== blockId);
+        if (composerPreviewUrls[blockId]) {
+            URL.revokeObjectURL(composerPreviewUrls[blockId]);
+            delete composerPreviewUrls[blockId];
+        }
+        const wrapper = getComposerFileWrapper(blockId);
+        if (wrapper) wrapper.remove();
+        if (selectedOverlayBlockId === blockId) {
+            selectedOverlayBlockId = overlayBlocks[overlayBlocks.length - 1]?.id || null;
+        }
+        saveCustomOverlayConfig();
+        renderComposerBlocksList();
+        renderComposerPreview();
+        updateComposerInspector();
+    }
+
+    function bindComposerInspector() {
+        const bindings = [
+            ['composerBlockName', block => { block.name = document.getElementById('composerBlockName').value || (block.type === 'text' ? 'Text block' : 'Image block'); }],
+            ['composerBlockStyle', block => { block.style = document.getElementById('composerBlockStyle').value; }],
+            ['composerTextContent', block => { block.text = document.getElementById('composerTextContent').value; }],
+            ['composerPosX', block => { block.x = clampComposerNumber(document.getElementById('composerPosX').value, 0, 100 - block.width, block.x); }],
+            ['composerPosY', block => { block.y = clampComposerNumber(document.getElementById('composerPosY').value, 0, 100 - block.height, block.y); }],
+            ['composerWidth', block => {
+                block.width = clampComposerNumber(document.getElementById('composerWidth').value, 6, 72, block.width);
+                block.x = clampComposerNumber(block.x, 0, 100 - block.width, block.x);
+            }],
+            ['composerHeight', block => {
+                block.height = clampComposerNumber(document.getElementById('composerHeight').value, 6, 62, block.height);
+                block.y = clampComposerNumber(block.y, 0, 100 - block.height, block.y);
+            }],
+            ['composerFontSize', block => { block.fontSize = clampComposerNumber(document.getElementById('composerFontSize').value, 10, 56, block.fontSize); }],
+            ['composerTextAlign', block => { block.align = document.getElementById('composerTextAlign').value; }],
+            ['composerTextColor', block => { block.textColor = document.getElementById('composerTextColor').value; }],
+            ['composerBackgroundColor', block => { block.backgroundColor = document.getElementById('composerBackgroundColor').value; }],
+            ['composerOpacity', block => { block.opacity = clampComposerNumber(document.getElementById('composerOpacity').value, 0.2, 1, block.opacity); }],
+            ['composerImageFit', block => { block.fit = document.getElementById('composerImageFit').value; }],
+        ];
+
+        bindings.forEach(([id, handler]) => {
+            const element = document.getElementById(id);
+            if (!element || element.dataset.composerBound === 'true') return;
+            element.dataset.composerBound = 'true';
+            const eventName = element.tagName === 'SELECT' || element.type === 'color' || element.type === 'range' ? 'input' : 'input';
+            element.addEventListener(eventName, () => updateSelectedOverlayBlock(handler));
+        });
+
+        const chooseImageBtn = document.getElementById('composerChooseImageBtn');
+        if (chooseImageBtn && chooseImageBtn.dataset.composerBound !== 'true') {
+            chooseImageBtn.dataset.composerBound = 'true';
+            chooseImageBtn.addEventListener('click', () => {
+                const block = getSelectedOverlayBlock();
+                if (block && block.type === 'image') {
+                    openComposerFileDialog(block.id);
+                }
+            });
+        }
+
+        const removeBtn = document.getElementById('removeSelectedBlockBtn');
+        if (removeBtn && removeBtn.dataset.composerBound !== 'true') {
+            removeBtn.dataset.composerBound = 'true';
+            removeBtn.addEventListener('click', () => {
+                if (selectedOverlayBlockId) {
+                    removeOverlayBlock(selectedOverlayBlockId);
+                }
+            });
+        }
+    }
+
+    function initDisplayComposer() {
+        overlayBlocks = parseSavedOverlayBlocks();
+        selectedOverlayBlockId = overlayBlocks[0]?.id || null;
+
+        syncComposerFileInputs();
+        bindComposerInspector();
+
+        const addTextBtn = document.getElementById('addTextBlockBtn');
+        if (addTextBtn && addTextBtn.dataset.composerBound !== 'true') {
+            addTextBtn.dataset.composerBound = 'true';
+            addTextBtn.addEventListener('click', () => {
+                const block = defaultOverlayBlock('text');
+                overlayBlocks.push(block);
+                selectedOverlayBlockId = block.id;
+                saveCustomOverlayConfig();
+                renderComposerBlocksList();
+                renderComposerPreview();
+                updateComposerInspector();
+            });
+        }
+
+        const addImageBtn = document.getElementById('addImageBlockBtn');
+        if (addImageBtn && addImageBtn.dataset.composerBound !== 'true') {
+            addImageBtn.dataset.composerBound = 'true';
+            addImageBtn.addEventListener('click', () => {
+                const block = defaultOverlayBlock('image');
+                overlayBlocks.push(block);
+                selectedOverlayBlockId = block.id;
+                syncComposerFileInputs();
+                saveCustomOverlayConfig();
+                renderComposerBlocksList();
+                renderComposerPreview();
+                updateComposerInspector();
+            });
+        }
+
+        saveCustomOverlayConfig();
+        renderComposerBlocksList();
+        renderComposerPreview();
+        updateComposerInspector();
     }
 </script>

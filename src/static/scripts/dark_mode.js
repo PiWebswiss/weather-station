@@ -1,5 +1,5 @@
 ﻿(function () {
-  const STORAGE_KEY = 'inkypi-theme';
+  const STORAGE_KEY = 'e-inkpi-theme';
 
   function applyTheme(theme) {
     if (theme === 'dark') {

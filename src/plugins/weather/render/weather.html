@@ -2,300 +2,615 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Weather Display</title>
+<title>Weather</title>
 <style>
-/* ── E-ink weather display template ──────────────────────────────── */
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --paper: #fbfcff;
+  --paper-soft: #f4f7fb;
+  --ink: #4e5e7d;
+  --ink-soft: #7786a4;
+  --ink-muted: #92a0b7;
+  --line: #dbe4ef;
+  --line-soft: #e8eef5;
+  --panel: rgba(255, 255, 255, 0.92);
+  --panel-strong: rgba(255, 255, 255, 0.98);
+  --sky: #dce8f5;
+  --sky-deep: #95a9c8;
+  --sun: #f2bf77;
+}
 
 body {
-    background: #fff;
-    color: #000;
-    font-family: 'DejaVu Sans', 'Liberation Sans', Arial, sans-serif;
-    width: {{ display_width | default(800) }}px;
-    height: {{ display_height | default(480) }}px;
-    overflow: hidden;
+  width: {{ display_width | default(800) }}px;
+  height: {{ display_height | default(480) }}px;
+  overflow: hidden;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Avenir Next", "Trebuchet MS", "Segoe UI", sans-serif;
 }
 
-.weather-dashboard {
-    display: flex;
-    flex-direction: column;
-    width: {{ display_width | default(800) }}px;
-    height: {{ display_height | default(480) }}px;
-    padding: 4px;
-    gap: 3px;
+.weather-root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 20px 22px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background:
+    radial-gradient(circle at 50% -8%, rgba(149, 169, 200, 0.18), transparent 42%),
+    linear-gradient(180deg, var(--paper), var(--paper-soft));
 }
 
-/* ── Zones ───────────────────────────────────────────────────────── */
-[data-zone] {
-    flex-shrink: 0;
-    overflow: hidden;
-    border-radius: 6px;
+.header {
+  text-align: center;
+  padding-bottom: 2px;
 }
 
-/* Size variants */
-[data-zone].zone-size-compact { flex: 0 0 28px; }
-[data-zone].zone-size-normal  { flex: 1; }
-[data-zone].zone-size-large   { flex: 2; }
-
-/* Style variants */
-[data-zone].zone-style-rounded { border-radius: 8px; }
-[data-zone].zone-style-square  { border-radius: 0; }
-
-/* Border variant */
-[data-zone].zone-border { border: 1px solid #000; }
-
-/* ── Header zone ─────────────────────────────────────────────────── */
-.zone-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 4px 8px;
-    font-size: 13px;
-    font-weight: bold;
-    border-bottom: 1px solid #ccc;
-}
-.zone-header .city { font-size: 14px; }
-.zone-header .date-time { font-size: 11px; color: #444; text-align: right; }
-
-/* ── Temperature zone ────────────────────────────────────────────── */
-.zone-temperature {
-    display: flex;
-    align-items: center;
-    padding: 4px 10px;
-    gap: 10px;
-}
-.zone-temperature .temp-main {
-    font-size: 42px;
-    font-weight: bold;
-    line-height: 1;
-}
-.zone-temperature .temp-details {
-    display: flex;
-    flex-direction: column;
-    font-size: 11px;
-    gap: 2px;
-}
-.zone-temperature .weather-icon {
-    width: 48px;
-    height: 48px;
-    margin-left: auto;
+.title {
+  font-size: 31px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  line-height: 1.05;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* ── Metrics zone ────────────────────────────────────────────────── */
-.zone-metrics {
-    display: flex;
-    align-items: center;
-    padding: 3px 8px;
-    gap: 10px;
-    font-size: 10px;
-    flex-wrap: wrap;
+.date-line {
+  margin-top: 4px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  letter-spacing: 0.02em;
 }
-.metric-item {
-    display: flex;
-    align-items: center;
-    gap: 3px;
-}
-.metric-item img { width: 12px; height: 12px; }
 
-/* ── Graph zone ──────────────────────────────────────────────────── */
-.zone-graph {
-    padding: 3px 6px 2px;
-    overflow: hidden;
+.meta-strip {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
-.zone-graph svg { display: block; }
 
-/* ── Forecast zone ───────────────────────────────────────────────── */
-.zone-forecast {
-    display: flex;
-    padding: 3px 4px;
-    gap: 2px;
-    overflow: hidden;
+.meta-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--ink-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
-.forecast-day {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    font-size: 9px;
-    gap: 1px;
-    border-left: 1px solid #ddd;
-    padding: 0 3px;
+
+.current-section {
+  display: grid;
+  grid-template-columns: 220px 176px minmax(0, 1fr);
+  gap: 10px 14px;
+  align-items: center;
+  min-height: 176px;
 }
-.forecast-day:first-child { border-left: none; }
-.forecast-day .fc-day   { font-weight: bold; font-size: 9px; }
-.forecast-day .fc-icon  { width: 20px; height: 20px; }
-.forecast-day .fc-temps { font-size: 9px; }
-.forecast-day .fc-hi    { font-weight: bold; }
-.forecast-day .fc-lo    { color: #666; }
+
+.current-section.no-stats {
+  grid-template-columns: 230px minmax(0, 1fr);
+}
+
+.art-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 168px;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 50% 22%, rgba(220, 232, 245, 0.65), transparent 58%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(245, 248, 252, 0.82));
+}
+
+.art-panel img {
+  width: 188px;
+  height: 188px;
+  display: block;
+  object-fit: contain;
+}
+
+.temperature-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+}
+
+.condition-line {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  line-height: 1.15;
+}
+
+.temp-line {
+  margin-top: 6px;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.temp-value {
+  font-size: 84px;
+  font-weight: 800;
+  letter-spacing: -0.08em;
+  line-height: 0.9;
+  color: var(--ink);
+}
+
+.temp-unit {
+  margin-top: 10px;
+  font-size: 31px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  line-height: 1;
+}
+
+.feels-line {
+  margin-top: 4px;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.range-line {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.range-divider {
+  width: 1px;
+  height: 14px;
+  background: var(--line);
+}
+
+.stats-panel {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 18px;
+  align-content: start;
+}
+
+.stat-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stat-item {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-height: 40px;
+}
+
+.stat-item img,
+.moon-phase-emoji {
+  width: 20px;
+  height: 20px;
+  display: block;
+  object-fit: contain;
+}
+
+.moon-phase-emoji {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.stat-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.stat-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink-muted);
+  line-height: 1.1;
+}
+
+.stat-value {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stat-value small {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+
+.trend-shell {
+  padding: 4px 0 2px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.chart-shell {
+  height: 88px;
+}
+
+.chart-shell svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.forecast-row {
+  margin-top: auto;
+  display: grid;
+  grid-template-columns: repeat({{ forecast_days | length if forecast_days else 1 }}, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.forecast-card {
+  min-width: 0;
+  min-height: 104px;
+  padding: 8px 6px 10px;
+  border-radius: 15px;
+  border: 1.5px solid var(--line);
+  background: var(--panel);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+.forecast-card.today {
+  background: var(--panel-strong);
+  border-color: #bfd2e6;
+}
+
+.forecast-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.forecast-icon {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  display: block;
+}
+
+.forecast-temps {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.15;
+  text-align: center;
+}
+
+.forecast-low {
+  color: var(--sky-deep);
+  font-weight: 700;
+}
+
+.forecast-extra {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ink-muted);
+  line-height: 1;
+}
+
+.custom-overlay-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 8;
+}
+
+.custom-overlay-block {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  overflow: hidden;
+}
+
+.custom-overlay-block.is-text {
+  padding: 6px 10px;
+}
+
+.custom-overlay-block.align-center {
+  justify-content: center;
+  text-align: center;
+}
+
+.custom-overlay-block.align-right {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.custom-overlay-block.style-card {
+  border: 1px solid rgba(149, 169, 200, 0.28);
+  border-radius: 14px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58);
+}
+
+.custom-overlay-block.style-pill {
+  border: 1px solid rgba(149, 169, 200, 0.28);
+  border-radius: 999px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.58);
+}
+
+.custom-overlay-text {
+  width: 100%;
+  line-height: 1.15;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-weight: 700;
+}
+
+.custom-overlay-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.custom-overlay-image.fit-contain {
+  object-fit: contain;
+}
+
+.custom-overlay-image.fit-cover {
+  object-fit: cover;
+}
 </style>
 </head>
 <body>
+{% set show_refresh = plugin_settings.displayRefreshTime == 'true' or plugin_settings.displayRefreshTime == True %}
+{% set show_metrics = plugin_settings.displayMetrics == 'true' or plugin_settings.displayMetrics == True %}
+{% set show_graph = plugin_settings.displayGraph == 'true' or plugin_settings.displayGraph == True %}
+{% set show_rain = plugin_settings.displayRain == 'true' or plugin_settings.displayRain == True %}
+{% set show_forecast = plugin_settings.displayForecast == 'true' or plugin_settings.displayForecast == True %}
+{% set show_moon = plugin_settings.moonPhase == 'true' or plugin_settings.moonPhase == True %}
+{% set show_rain_metric = show_rain and rain is defined and rain not in (None, '', '—', 0) %}
+{% set has_stats_panel = show_metrics or show_rain_metric or (show_moon and moon_phase) %}
 
-<div class="weather-dashboard"
-     data-layout='{{ plugin_settings.layoutConfig | default("[]") }}'>
-
-    <!-- ── HEADER zone ────────────────────────────────────────────── -->
-    <div data-zone="header" class="zone-size-normal zone-style-rounded">
-        <div class="zone-header">
-            <span class="city">{{ title | default(city | default('—')) }}</span>
-            <span class="date-time">
-                {{ current_date | default('') }}<br>
-                {{ current_time | default('') }}
-                {% if plugin_settings.displayRefreshTime == 'true' or plugin_settings.displayRefreshTime == True %}
-                    <br><small style="color:#999;">Updated {{ refresh_time | default('—') }}</small>
-                {% endif %}
-            </span>
-        </div>
-    </div>
-
-    <!-- ── TEMPERATURE zone ───────────────────────────────────────── -->
-    <div data-zone="temperature" class="zone-size-large zone-style-rounded">
-        <div class="zone-temperature">
-            <div>
-                <div class="temp-main">{{ temperature | default('—') }}°</div>
-                <div class="temp-details">
-                    <span>{{ weather_description | default('') }}</span>
-                    <span>Feels {{ feels_like | default('—') }}°</span>
-                    {% if plugin_settings.displayRain == 'true' or plugin_settings.displayRain == True %}
-                        <span>Rain {{ rain | default('0') }} mm</span>
-                    {% endif %}
-                    {% if plugin_settings.moonPhase == 'true' or plugin_settings.moonPhase == True %}
-                        <span>{{ moon_phase_icon | default('') }} {{ moon_phase | default('') }}</span>
-                    {% endif %}
-                </div>
-            </div>
-            {% if weather_icon_path %}
-                <img class="weather-icon" src="{{ weather_icon_path }}" alt="{{ weather_description | default('') }}">
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- ── METRICS zone ───────────────────────────────────────────── -->
-    {% if plugin_settings.displayMetrics == 'true' or plugin_settings.displayMetrics == True %}
-    <div data-zone="metrics" class="zone-size-compact zone-style-rounded">
-        <div class="zone-metrics">
-            {% if humidity is defined %}
-            <div class="metric-item">
-                <img src="/static/plugins/weather/icons/humidity.svg" alt="Humidity"> {{ humidity }}%
-            </div>
-            {% endif %}
-            {% if wind_speed is defined %}
-            <div class="metric-item">
-                <img src="/static/plugins/weather/icons/wind.svg" alt="Wind"> {{ wind_speed }} km/h
-            </div>
-            {% endif %}
-            {% if pressure is defined %}
-            <div class="metric-item">
-                <img src="/static/plugins/weather/icons/pressure.svg" alt="Pressure"> {{ pressure }} hPa
-            </div>
-            {% endif %}
-            {% if visibility is defined %}
-            <div class="metric-item">
-                <img src="/static/plugins/weather/icons/visibility.svg" alt="Visibility"> {{ visibility }} km
-            </div>
-            {% endif %}
-            {% if uvi is defined %}
-            <div class="metric-item">
-                <img src="/static/plugins/weather/icons/uvi.svg" alt="UV"> UV {{ uvi }}
-            </div>
-            {% endif %}
-            {% if sunrise is defined %}
-            <div class="metric-item">
-                <img src="/static/plugins/weather/icons/sunrise.svg" alt="Sunrise"> {{ sunrise }}
-            </div>
-            {% endif %}
-            {% if sunset is defined %}
-            <div class="metric-item">
-                <img src="/static/plugins/weather/icons/sunset.svg" alt="Sunset"> {{ sunset }}
-            </div>
-            {% endif %}
-        </div>
+<div class="weather-root">
+  <header class="header">
+    <div class="title">{{ title | default(city | default('Weather')) }}</div>
+    <div class="date-line">{{ current_date | default('') }}</div>
+    {% if source_name or timezone_name or show_refresh %}
+    <div class="meta-strip">
+      {% if source_name %}
+      <span class="meta-pill">{{ source_name }}</span>
+      {% endif %}
+      {% if timezone_name %}
+      <span class="meta-pill">{{ timezone_name }}</span>
+      {% endif %}
+      {% if show_refresh %}
+      <span class="meta-pill">Updated {{ refresh_time | default('—') }}</span>
+      {% endif %}
     </div>
     {% endif %}
+  </header>
 
-    <!-- ── GRAPH zone ─────────────────────────────────────────────── -->
-    {% if plugin_settings.displayGraph == 'true' or plugin_settings.displayGraph == True %}
-    <div data-zone="graph" class="zone-size-normal zone-style-rounded">
-        <div class="zone-graph">
-            {% if hourly_graph_svg %}
-                {{ hourly_graph_svg | safe }}
-            {% else %}
-                <svg width="388" height="40" viewBox="0 0 388 40">
-                    <text x="194" y="24" text-anchor="middle" font-size="10" fill="#999">No graph data</text>
-                </svg>
-            {% endif %}
+  <section class="current-section{% if not has_stats_panel %} no-stats{% endif %}">
+    <div class="art-panel">
+      {% if weather_icon_path %}
+      <img src="{{ weather_icon_path }}" alt="">
+      {% endif %}
+    </div>
+
+    <div class="temperature-panel">
+      <div class="condition-line">{{ weather_description | default('Weather') }}</div>
+      <div class="temp-line">
+        <div class="temp-value">{{ temperature | default('—') }}</div>
+        <div class="temp-unit">&deg;{{ temperature_unit_symbol | default('C') }}</div>
+      </div>
+      {% if feels_like is defined and feels_like not in (None, '', '—') %}
+      <div class="feels-line">Feels Like {{ feels_like }}&deg;</div>
+      {% endif %}
+      <div class="range-line">
+        {% if temp_max_today is defined and temp_max_today not in (None, '', '—') %}
+        <span>High {{ temp_max_today }}&deg;</span>
+        {% endif %}
+        {% if temp_max_today is defined and temp_max_today not in (None, '', '—') and temp_min_today is defined and temp_min_today not in (None, '', '—') %}
+        <span class="range-divider"></span>
+        {% endif %}
+        {% if temp_min_today is defined and temp_min_today not in (None, '', '—') %}
+        <span>Low {{ temp_min_today }}&deg;</span>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if has_stats_panel %}
+    <div class="stats-panel">
+      <div class="stat-column">
+        {% if show_metrics and sunrise is defined and sunrise not in (None, '', '—') %}
+        <div class="stat-item">
+          {% if sunrise_icon_path %}<img src="{{ sunrise_icon_path }}" alt="">{% endif %}
+          <div class="stat-copy">
+            <span class="stat-label">Sunrise</span>
+            <span class="stat-value">{{ sunrise }}</span>
+          </div>
         </div>
+        {% endif %}
+
+        {% if wind_speed is defined and wind_speed not in (None, '', '—') %}
+        <div class="stat-item">
+          {% if wind_icon_path %}<img src="{{ wind_icon_path }}" alt="">{% endif %}
+          <div class="stat-copy">
+            <span class="stat-label">Wind</span>
+            <span class="stat-value">{{ wind_speed }} <small>{{ wind_unit | default('km/h') }}</small></span>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if show_metrics and pressure is defined and pressure not in (None, '', '—') %}
+        <div class="stat-item">
+          {% if pressure_icon_path %}<img src="{{ pressure_icon_path }}" alt="">{% endif %}
+          <div class="stat-copy">
+            <span class="stat-label">Pressure</span>
+            <span class="stat-value">{{ pressure }} <small>hPa</small></span>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if show_metrics and visibility is defined and visibility not in (None, '', '—') %}
+        <div class="stat-item">
+          {% if visibility_icon_path %}<img src="{{ visibility_icon_path }}" alt="">{% endif %}
+          <div class="stat-copy">
+            <span class="stat-label">Visibility</span>
+            <span class="stat-value">{{ visibility }}</span>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="stat-column">
+        {% if show_metrics and sunset is defined and sunset not in (None, '', '—') %}
+        <div class="stat-item">
+          {% if sunset_icon_path %}<img src="{{ sunset_icon_path }}" alt="">{% endif %}
+          <div class="stat-copy">
+            <span class="stat-label">Sunset</span>
+            <span class="stat-value">{{ sunset }}</span>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if show_metrics and humidity is defined and humidity not in (None, '', '—') %}
+        <div class="stat-item">
+          {% if humidity_icon_path %}<img src="{{ humidity_icon_path }}" alt="">{% endif %}
+          <div class="stat-copy">
+            <span class="stat-label">Humidity</span>
+            <span class="stat-value">{{ humidity }} <small>%</small></span>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if show_metrics and uvi is defined and uvi not in (None, '', '—') %}
+        <div class="stat-item">
+          {% if uvi_icon_path %}<img src="{{ uvi_icon_path }}" alt="">{% endif %}
+          <div class="stat-copy">
+            <span class="stat-label">UV Index</span>
+            <span class="stat-value">{{ uvi }}</span>
+          </div>
+        </div>
+        {% endif %}
+
+        {% if show_rain_metric %}
+        <div class="stat-item">
+          {% if rain_icon_path %}<img src="{{ rain_icon_path }}" alt="">{% endif %}
+          <div class="stat-copy">
+            <span class="stat-label">Rain</span>
+            <span class="stat-value">{{ rain }} <small>{{ rain_unit | default('mm') }}</small></span>
+          </div>
+        </div>
+        {% elif show_moon and moon_phase %}
+        <div class="stat-item">
+          {% if moon_phase_asset %}
+          <img src="{{ moon_phase_asset }}" alt="">
+          {% else %}
+          <span class="moon-phase-emoji">{{ moon_phase_icon | default('🌙') }}</span>
+          {% endif %}
+          <div class="stat-copy">
+            <span class="stat-label">Moon</span>
+            <span class="stat-value">{{ moon_phase }}</span>
+          </div>
+        </div>
+        {% endif %}
+      </div>
     </div>
     {% endif %}
+  </section>
 
-    <!-- ── FORECAST zone ──────────────────────────────────────────── -->
-    {% if plugin_settings.displayForecast == 'true' or plugin_settings.displayForecast == True %}
-    <div data-zone="forecast" class="zone-size-normal zone-style-rounded">
-        <div class="zone-forecast">
-            {% for day in forecast_days | default([]) %}
-            <div class="forecast-day">
-                <span class="fc-day">{{ day.day | default('') }}</span>
-                {% if day.icon_path %}
-                    <img class="fc-icon" src="{{ day.icon_path }}" alt="{{ day.description | default('') }}">
-                {% endif %}
-                <span class="fc-temps">
-                    <span class="fc-hi">{{ day.temp_max | default('—') }}°</span>
-                    <span class="fc-lo"> / {{ day.temp_min | default('—') }}°</span>
-                </span>
-            </div>
-            {% endfor %}
-        </div>
+  {% if show_graph and hourly_graph_svg %}
+  <section class="trend-shell">
+    <div class="chart-shell">
+      {{ hourly_graph_svg | safe }}
     </div>
-    {% endif %}
+  </section>
+  {% endif %}
 
+  {% if show_forecast and forecast_days %}
+  <section class="forecast-row">
+    {% for day in forecast_days %}
+    <div class="forecast-card{% if loop.first %} today{% endif %}">
+      <div class="forecast-name">{{ day.day | default('') }}</div>
+      {% if day.icon_path %}
+      <img src="{{ day.icon_path }}" alt="" class="forecast-icon">
+      {% endif %}
+      <div class="forecast-temps">
+        {{ day.temp_max | default('—') }}&deg;
+        <span class="forecast-low">/ {{ day.temp_min | default('—') }}&deg;</span>
+      </div>
+      {% if day.precip is defined and day.precip %}
+      <div class="forecast-extra">{{ day.precip }} {{ rain_unit | default('mm') }}</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </section>
+  {% endif %}
+
+  {% if custom_overlay_blocks %}
+  <div class="custom-overlay-layer" aria-hidden="true">
+    {% for block in custom_overlay_blocks %}
+    <div
+      class="custom-overlay-block is-{{ block.type }} style-{{ block.style }} align-{{ block.text_align }}"
+      style="
+        left: {{ block.x }}%;
+        top: {{ block.y }}%;
+        width: {{ block.width }}%;
+        height: {{ block.height }}%;
+        z-index: {{ block.z_index }};
+        opacity: {{ block.opacity }};
+        {% if block.background_color %}background: {{ block.background_color }};{% endif %}
+      "
+    >
+      {% if block.type == 'text' %}
+      <div
+        class="custom-overlay-text"
+        style="
+          color: {{ block.text_color }};
+          font-size: {{ block.font_size }}px;
+          text-align: {{ block.text_align }};
+        "
+      >{{ block.text }}</div>
+      {% elif block.type == 'image' and block.image_src %}
+      <img src="{{ block.image_src }}" alt="" class="custom-overlay-image fit-{{ block.fit }}">
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
 </div>
-
-<script>
-// Apply layout config: reorder zones, apply sizes/styles, hide disabled zones
-(function() {
-    var rawLayout = document.querySelector('.weather-dashboard').getAttribute('data-layout') || '[]';
-    var layout;
-    try { layout = JSON.parse(rawLayout); } catch(e) { layout = []; }
-    if (!layout || !layout.length) return;
-
-    var dashboard = document.querySelector('.weather-dashboard');
-    if (!dashboard) return;
-
-    layout.forEach(function(zone) {
-        var el = dashboard.querySelector('[data-zone="' + zone.id + '"]');
-        if (!el) return;
-
-        // Visibility
-        if (!zone.enabled) {
-            el.style.display = 'none';
-            return;
-        }
-        el.style.display = '';
-
-        // Remove existing size/style/border classes
-        el.classList.remove('zone-size-compact', 'zone-size-normal', 'zone-size-large');
-        el.classList.remove('zone-style-rounded', 'zone-style-square');
-        el.classList.remove('zone-border');
-
-        // Apply new classes
-        if (zone.size)   el.classList.add('zone-size-' + zone.size);
-        if (zone.style)  el.classList.add('zone-style-' + zone.style);
-        if (zone.border) el.classList.add('zone-border');
-
-        // Reorder: append to dashboard in layout order
-        dashboard.appendChild(el);
-    });
-
-    // Hide any zones not mentioned in the layout config
-    var allZones = dashboard.querySelectorAll('[data-zone]');
-    allZones.forEach(function(el) {
-        var id = el.getAttribute('data-zone');
-        if (!layout.find(function(z) { return z.id === id; })) {
-            el.style.display = 'none';
-        }
-    });
-})();
-</script>
 </body>
 </html>

@@ -7,6 +7,8 @@ from __future__ import annotations
 import json
 import os
 import datetime
+import re
+import pytz
 from plugins.base_plugin.base_plugin import BasePlugin
 
 
@@ -36,34 +38,337 @@ def _moon_phase(dt: datetime.date) -> tuple[str, str]:
     return icon, name
 
 
+_ICON_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icons")
+_MOON_PHASE_ASSETS = {
+    "New Moon": "newmoon.png",
+    "Waxing Crescent": "waxingcrescent.png",
+    "First Quarter": "firstquarter.png",
+    "Waxing Gibbous": "waxinggibbous.png",
+    "Full Moon": "fullmoon.png",
+    "Waning Gibbous": "waninggibbous.png",
+    "Last Quarter": "lastquarter.png",
+    "Waning Crescent": "waningcrescent.png",
+}
+
+
+def _asset_path(filename: str | None) -> str | None:
+    """Return a file:// path for a plugin asset if it exists."""
+    if not filename:
+        return None
+    full = os.path.join(_ICON_DIR, filename)
+    if os.path.exists(full):
+        return f"file://{full}"
+    return None
+
+
+def _moon_phase_asset(name: str) -> str | None:
+    """Return an icon path for the given moon phase name."""
+    return _asset_path(_MOON_PHASE_ASSETS.get(name))
+
+
+def _safe_timezone(name: str | None) -> pytz.BaseTzInfo:
+    """Resolve a timezone name with a safe UTC fallback."""
+    try:
+        return pytz.timezone(name or "UTC")
+    except Exception:
+        return pytz.UTC
+
+
+def _resolve_display_timezone(provider: str, raw_data: dict, plugin_settings: dict, device_config) -> str:
+    """Resolve the timezone used on the rendered display."""
+    preference = plugin_settings.get("weatherTimeZone", "locationTimeZone")
+    if preference == "localTimeZone":
+        return device_config.get_config("timezone", default="UTC")
+    if provider == "MeteoSwiss":
+        return "Europe/Zurich"
+    return raw_data.get("timezone") or device_config.get_config("timezone", default="UTC")
+
+
+def _convert_iso_time(value: str, source_timezone: str, target_timezone: str) -> str:
+    """Convert an ISO-like time string between timezones and return HH:MM."""
+    if not value:
+        return "—"
+    try:
+        dt = datetime.datetime.fromisoformat(value)
+        source_tz = _safe_timezone(source_timezone)
+        target_tz = _safe_timezone(target_timezone)
+        if dt.tzinfo is None:
+            dt = source_tz.localize(dt)
+        else:
+            dt = dt.astimezone(source_tz)
+        return dt.astimezone(target_tz).strftime("%H:%M")
+    except Exception:
+        if "T" in value:
+            return value.split("T", 1)[1][:5]
+        return value[:5] if len(value) >= 5 else value
+
+
+def _format_visibility(value) -> str:
+    """Format visibility values into a compact human-readable string."""
+    if value in (None, "", "—"):
+        return "—"
+    try:
+        meters = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+
+    if meters >= 10000:
+        return "> 10 km"
+    if meters >= 1000:
+        return f"{meters / 1000:.1f} km"
+    return f"{int(meters)} m"
+
+
+def _format_display_date(dt: datetime.datetime) -> str:
+    """Return a friendly header date."""
+    return dt.strftime("%A, %B %d")
+
+
+def _temperature_unit_symbol(units: str) -> str:
+    """Return the compact temperature unit symbol."""
+    if units == "imperial":
+        return "F"
+    if units == "standard":
+        return "K"
+    return "C"
+
+
+def _convert_temperature(value, units: str):
+    """Convert a Celsius value into the configured temperature unit."""
+    if not isinstance(value, (int, float)):
+        return value
+    if units == "imperial":
+        return round((value * 9 / 5) + 32)
+    if units == "standard":
+        return round(value + 273.15)
+    return round(value)
+
+
+def _convert_wind_speed(value, units: str):
+    """Convert a km/h wind speed into the configured unit."""
+    if not isinstance(value, (int, float)):
+        return value
+    if units == "imperial":
+        return round(value * 0.621371, 1)
+    return round(value)
+
+
+def _location_label_from_address(address: dict) -> str | None:
+    """Extract a compact location label from a reverse-geocoded address."""
+    if not address:
+        return None
+    for key in ("city", "town", "village", "municipality", "hamlet", "county"):
+        value = address.get(key)
+        if value:
+            return value
+    return None
+
+
+def _path_to_file_url(path: str | None) -> str | None:
+    """Convert an absolute file path into a Chromium-friendly file:// URL."""
+    if not path or not isinstance(path, str):
+        return None
+    if path.startswith(("file://", "http://", "https://", "data:")):
+        return path
+    if os.path.exists(path):
+        return f"file://{path}"
+    return None
+
+
+def _safe_json_list(raw_value) -> list:
+    """Parse a JSON list safely."""
+    if not raw_value:
+        return []
+    try:
+        parsed = json.loads(raw_value)
+    except Exception:
+        return []
+    return parsed if isinstance(parsed, list) else []
+
+
+def _clamp_float(value, minimum: float, maximum: float, default: float) -> float:
+    """Parse and clamp a float value."""
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return default
+    return max(minimum, min(maximum, numeric))
+
+
+def _clamp_int(value, minimum: int, maximum: int, default: int) -> int:
+    """Parse and clamp an integer value."""
+    try:
+        numeric = int(float(value))
+    except (TypeError, ValueError):
+        return default
+    return max(minimum, min(maximum, numeric))
+
+
+def _sanitize_color(value: str | None, default: str) -> str:
+    """Allow only simple safe color values for user-configurable overlays."""
+    if not value or not isinstance(value, str):
+        return default
+    cleaned = value.strip()
+    if cleaned == "transparent":
+        return "transparent"
+    if re.fullmatch(r"#[0-9a-fA-F]{6}", cleaned):
+        return cleaned
+    if re.fullmatch(r"#[0-9a-fA-F]{3}", cleaned):
+        return cleaned
+    return default
+
+
+def _parse_custom_overlay_blocks(plugin_settings: dict) -> list[dict]:
+    """Parse user-authored text/image overlay blocks for the weather display."""
+    raw_blocks = _safe_json_list(plugin_settings.get("customOverlayConfig"))
+    parsed_blocks: list[dict] = []
+
+    for index, raw_block in enumerate(raw_blocks):
+        if not isinstance(raw_block, dict):
+            continue
+
+        block_type = str(raw_block.get("type") or "").strip().lower()
+        if block_type not in {"text", "image"}:
+            continue
+
+        block_id = str(raw_block.get("id") or f"overlay_{index}").strip()
+        image_key = str(raw_block.get("imageKey") or f"designer_image_{block_id}").strip()
+        image_src = _path_to_file_url(plugin_settings.get(image_key)) if block_type == "image" else None
+
+        if block_type == "image" and not image_src:
+            continue
+
+        parsed_blocks.append({
+            "id": block_id,
+            "type": block_type,
+            "name": str(raw_block.get("name") or ("Text block" if block_type == "text" else "Image block")).strip()[:48],
+            "x": _clamp_float(raw_block.get("x"), 0, 94, 8),
+            "y": _clamp_float(raw_block.get("y"), 0, 92, 12),
+            "width": _clamp_float(raw_block.get("width"), 6, 72, 24 if block_type == "text" else 18),
+            "height": _clamp_float(raw_block.get("height"), 6, 62, 10 if block_type == "text" else 18),
+            "font_size": _clamp_int(raw_block.get("fontSize"), 10, 56, 22),
+            "text": str(raw_block.get("text") or "").strip()[:220],
+            "text_color": _sanitize_color(raw_block.get("textColor"), "#4e5e7d"),
+            "background_color": _sanitize_color(raw_block.get("backgroundColor"), "transparent"),
+            "style": (
+                raw_block.get("style")
+                if raw_block.get("style") in {"none", "card", "pill"}
+                else "card"
+            ),
+            "text_align": (
+                raw_block.get("align")
+                if raw_block.get("align") in {"left", "center", "right"}
+                else "left"
+            ),
+            "fit": raw_block.get("fit") if raw_block.get("fit") in {"contain", "cover"} else "contain",
+            "opacity": _clamp_float(raw_block.get("opacity"), 0.2, 1, 1),
+            "image_key": image_key,
+            "image_src": image_src,
+            "z_index": 30 + index,
+        })
+
+    return parsed_blocks
+
+
 # ---------------------------------------------------------------------------
 # Helper: simple SVG bar-chart for hourly temperatures
 # ---------------------------------------------------------------------------
 
-def _build_hourly_svg(hours: list[dict], width: int = 388, height: int = 48) -> str:
-    """Build a minimal SVG bar chart from a list of {time, temp} dicts."""
-    if not hours:
+def _build_hourly_svg(hours: list[dict], width: int = 780, height: int = 92) -> str:
+    """Build a soft hourly temperature area chart from a list of {time, temp} dicts."""
+    clean_hours = []
+    for hour in hours:
+        temp = hour.get("temp")
+        if isinstance(temp, (int, float)):
+            clean_hours.append({
+                "time": hour.get("time", ""),
+                "temp": float(temp),
+            })
+
+    if len(clean_hours) < 2:
         return ""
-    temps = [h.get("temp", 0) for h in hours]
+
+    temps = [hour["temp"] for hour in clean_hours]
     lo, hi = min(temps), max(temps)
-    spread = hi - lo or 1
-    bar_w = max(1, width // len(temps) - 1)
-    rects = []
+    if hi == lo:
+        hi += 1
+        lo -= 1
+
+    pad_left = 12
+    pad_right = 12
+    pad_top = 8
+    pad_bottom = 22
+    plot_width = width - pad_left - pad_right
+    plot_height = height - pad_top - pad_bottom
+    spread = hi - lo
+    baseline_y = height - pad_bottom
+
+    points = []
+    for index, hour in enumerate(clean_hours):
+        ratio_x = index / (len(clean_hours) - 1)
+        ratio_y = (hour["temp"] - lo) / spread
+        x = pad_left + (plot_width * ratio_x)
+        y = baseline_y - (plot_height * ratio_y)
+        points.append((x, y, hour))
+
+    line_path = "M " + " L ".join(f"{x:.1f} {y:.1f}" for x, y, _ in points)
+    area_path = (
+        f"M {points[0][0]:.1f} {baseline_y:.1f} "
+        + " L ".join(f"{x:.1f} {y:.1f}" for x, y, _ in points)
+        + f" L {points[-1][0]:.1f} {baseline_y:.1f} Z"
+    )
+
+    guide_lines = []
+    for fraction in (0.0, 0.5, 1.0):
+        y = pad_top + (plot_height * fraction)
+        guide_lines.append(
+            f'<line x1="{pad_left}" y1="{y:.1f}" x2="{width - pad_right}" y2="{y:.1f}" '
+            'stroke="#d9e2ed" stroke-width="1" stroke-dasharray="3 4"/>'
+        )
+
     labels = []
-    for i, h in enumerate(hours):
-        t = h.get("temp", 0)
-        norm = (t - lo) / spread
-        bar_h = max(4, int(norm * (height - 16)))
-        x = i * (bar_w + 1) + 1
-        y = height - bar_h - 8
-        rects.append(f'<rect x="{x}" y="{y}" width="{bar_w}" height="{bar_h}" fill="#444"/>')
-        if i % 4 == 0:
-            time_str = h.get("time", "")
-            labels.append(f'<text x="{x + bar_w // 2}" y="{height - 1}" font-size="7" '
-                          f'text-anchor="middle" fill="#666">{time_str}</text>')
-    svg = (f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
-           f'viewBox="0 0 {width} {height}">')
-    svg += "".join(rects) + "".join(labels) + "</svg>"
+    step = max(1, len(points) // 8)
+    for index, (x, _, hour) in enumerate(points):
+        if index == 0 or index == len(points) - 1 or index % step == 0:
+            labels.append(
+                f'<text x="{x:.1f}" y="{height - 4}" font-size="8" '
+                f'text-anchor="middle" fill="#7e8ea8">{hour["time"]}</text>'
+            )
+
+    dots = []
+    for index, (x, y, _) in enumerate(points):
+        radius = 2.4 if index == 0 else 1.6
+        fill = "#f0a85c" if index == 0 else "#8fa4c4"
+        dots.append(
+            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{radius}" fill="{fill}" '
+            'stroke="#ffffff" stroke-width="1"/>'
+        )
+
+    temp_labels = [
+        f'<text x="{pad_left}" y="{pad_top - 1}" font-size="9" fill="#7e8ea8">{round(hi)}°</text>',
+        (
+            f'<text x="{pad_left}" y="{baseline_y - 2}" font-size="9" fill="#7e8ea8">'
+            f'{round(lo)}°</text>'
+        ),
+    ]
+
+    svg = (
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="{height}" '
+        f'viewBox="0 0 {width} {height}" preserveAspectRatio="none">'
+        "<defs>"
+        '<linearGradient id="wxArea" x1="0" y1="0" x2="0" y2="1">'
+        '<stop offset="0%" stop-color="#f3c17b" stop-opacity="0.28"/>'
+        '<stop offset="100%" stop-color="#d7e5f5" stop-opacity="0.12"/>'
+        "</linearGradient>"
+        "</defs>"
+        f'<path d="{area_path}" fill="url(#wxArea)"/>'
+        + "".join(guide_lines)
+        + f'<path d="{line_path}" fill="none" stroke="#8fa4c4" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>'
+        + "".join(dots)
+        + "".join(temp_labels)
+        + "".join(labels)
+        + "</svg>"
+    )
     return svg
 
 
@@ -100,14 +405,46 @@ _WMO_ICON_MAP = {
 
 
 def _wmo_icon_path(code: int) -> str | None:
-    """Return the web path for a WMO weather code icon, or None if not found."""
+    """Return a file:// path for a WMO weather code icon (works in Chromium file:// screenshots)."""
     name = _WMO_ICON_MAP.get(code, "cloudy")
-    icon_dir = os.path.join(os.path.dirname(__file__), "icons")
-    if os.path.exists(os.path.join(icon_dir, f"{name}.svg")):
-        return f"/static/plugins/weather/icons/{name}.svg"
-    if os.path.exists(os.path.join(icon_dir, "cloudy.svg")):
-        return "/static/plugins/weather/icons/cloudy.svg"
+    for fname in (f"{name}.svg", "cloudy.svg"):
+        full = os.path.join(_ICON_DIR, fname)
+        if os.path.exists(full):
+            return f"file://{full}"
     return None
+
+
+_WMO_TO_MSW_ICON_MAP = {
+    0: 1,
+    1: 2,
+    2: 3,
+    3: 5,
+    45: 6,
+    48: 6,
+    51: 7,
+    53: 8,
+    55: 8,
+    61: 9,
+    63: 10,
+    65: 11,
+    71: 14,
+    73: 15,
+    75: 16,
+    77: 14,
+    80: 28,
+    81: 29,
+    82: 30,
+    85: 31,
+    86: 31,
+    95: 17,
+    96: 19,
+    99: 19,
+}
+
+
+def _wmo_to_msw_icon_code(code: int) -> int:
+    """Approximate a MeteoSwiss symbol code from a WMO weather code."""
+    return _WMO_TO_MSW_ICON_MAP.get(code, 5)
 
 
 # ---------------------------------------------------------------------------
@@ -134,18 +471,48 @@ def _msw_desc(code: int) -> str:
     return _MSW_DESCRIPTIONS.get(base, "Variable")
 
 def _msw_icon_path(code: int) -> str:
-    """Return the web path for a MeteoSwiss symbol icon (msw_N.svg)."""
-    icon_dir = os.path.join(os.path.dirname(__file__), "icons")
+    """Return a file:// path for a MeteoSwiss symbol icon (works in Chromium file:// screenshots)."""
     for candidate in [code, code - 100 if code > 100 else None]:
         if candidate and candidate > 0:
             fname = f"msw_{candidate}.svg"
-            if os.path.exists(os.path.join(icon_dir, fname)):
-                return f"/static/plugins/weather/icons/{fname}"
-    return "/static/plugins/weather/icons/cloudy.svg"
+            full = os.path.join(_ICON_DIR, fname)
+            if os.path.exists(full):
+                return f"file://{full}"
+    return f"file://{os.path.join(_ICON_DIR, 'cloudy.svg')}"
 
 # Cache: {plz: (unix_ts, data)}
 _MSW_CACHE: dict = {}
 _MSW_CACHE_TTL = 1800  # 30 minutes
+_GEOCODE_CACHE: dict[tuple[float, float], str | None] = {}
+
+
+def _reverse_geocode_location_label(lat: float, lon: float) -> str | None:
+    """Resolve a human-readable location label from coordinates."""
+    import urllib.request
+
+    cache_key = (round(lat, 3), round(lon, 3))
+    if cache_key in _GEOCODE_CACHE:
+        return _GEOCODE_CACHE[cache_key]
+
+    url = (
+        "https://nominatim.openstreetmap.org/reverse"
+        f"?format=json&lat={lat:.6f}&lon={lon:.6f}&zoom=12&addressdetails=1"
+    )
+    req = urllib.request.Request(url, headers={"User-Agent": "E-InkPi/1.0"})
+    label = None
+    try:
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            geo = json.loads(resp.read())
+        label = (
+            _location_label_from_address(geo.get("address", {}))
+            or (geo.get("display_name") or "").split(",", 1)[0].strip()
+            or None
+        )
+    except Exception:
+        label = None
+
+    _GEOCODE_CACHE[cache_key] = label
+    return label
 
 
 def _find_valid_msw_plz(base_plz4: int) -> str | None:
@@ -157,7 +524,7 @@ def _find_valid_msw_plz(base_plz4: int) -> str | None:
             continue
         plz6 = f"{plz4}00"
         url  = f"https://app-prod-ws.meteoswiss-app.ch/v1/plzDetail?plz={plz6}"
-        req  = urllib.request.Request(url, headers={"User-Agent": "InkyPi/1.0"})
+        req  = urllib.request.Request(url, headers={"User-Agent": "E-InkPi/1.0"})
         try:
             with urllib.request.urlopen(req, timeout=5) as r:
                 d = json.loads(r.read())
@@ -175,7 +542,7 @@ def _fetch_meteoswiss(lat: float, lon: float) -> dict:
     # 1. Reverse-geocode to Swiss PLZ (zoom=16 required for postcode)
     geo_url = (f"https://nominatim.openstreetmap.org/reverse"
                f"?format=json&lat={lat:.6f}&lon={lon:.6f}&zoom=16&addressdetails=1")
-    req = urllib.request.Request(geo_url, headers={"User-Agent": "InkyPi/1.0"})
+    req = urllib.request.Request(geo_url, headers={"User-Agent": "E-InkPi/1.0"})
     with urllib.request.urlopen(req, timeout=10) as resp:
         geo = json.loads(resp.read())
     addr    = geo.get("address", {})
@@ -209,18 +576,30 @@ def _fetch_meteoswiss(lat: float, lon: float) -> dict:
 
     # 4. Fetch full forecast data
     url = f"https://app-prod-ws.meteoswiss-app.ch/v1/plzDetail?plz={plz6}"
-    req = urllib.request.Request(url, headers={"User-Agent": "InkyPi/1.0"})
+    req = urllib.request.Request(url, headers={"User-Agent": "E-InkPi/1.0"})
     with urllib.request.urlopen(req, timeout=10) as resp:
         data = json.loads(resp.read())
+    data["_location_label"] = (
+        _location_label_from_address(addr)
+        or (geo.get("display_name") or "").split(",", 1)[0].strip()
+    )
     _MSW_CACHE[cache_key] = (time.time(), data)
     return data
 
 
-def _parse_meteoswiss(data: dict, plugin_settings: dict) -> dict:
+def _parse_meteoswiss(
+    data: dict,
+    plugin_settings: dict,
+    timezone_name: str,
+    supplemental_ctx: dict | None = None,
+) -> dict:
     """Parse MeteoSwiss API response into the shared template context dict."""
     cur          = data.get("currentWeather", {})
     forecast_raw = data.get("forecast", [])
     graph        = data.get("graph", {})
+    tz           = _safe_timezone(timezone_name)
+    units        = plugin_settings.get("units", "metric")
+    fallback     = supplemental_ctx or {}
 
     temp      = cur.get("temperature", "—")
     icon_code = cur.get("icon", 1)
@@ -228,30 +607,27 @@ def _parse_meteoswiss(data: dict, plugin_settings: dict) -> dict:
     def _ts_hhmm(ts_ms):
         if not ts_ms:
             return "—"
-        return datetime.datetime.fromtimestamp(ts_ms / 1000).strftime("%H:%M")
+        return datetime.datetime.fromtimestamp(ts_ms / 1000, tz).strftime("%H:%M")
 
     sunrises = graph.get("sunrise", [])
     sunsets  = graph.get("sunset",  [])
     sunrise  = _ts_hhmm(sunrises[0]) if sunrises else "—"
     sunset   = _ts_hhmm(sunsets[0])  if sunsets  else "—"
 
-    # Hourly temperature graph (next 24 h)
     h_temps       = graph.get("temperatureMean1h", [])
     graph_start   = graph.get("start", 0)
     hourly_list   = []
-    for i, t in enumerate(h_temps[:24]):
+    for i, value in enumerate(h_temps[:24]):
         ts = graph_start + i * 3600 * 1000
         hourly_list.append({
-            "time": datetime.datetime.fromtimestamp(ts / 1000).strftime("%H:%M"),
-            "temp": t,
+            "time": datetime.datetime.fromtimestamp(ts / 1000, tz).strftime("%H:%M"),
+            "temp": _convert_temperature(value, units),
         })
 
-    # Wind: mean of first 8 three-hourly values (24 h)
     winds = graph.get("windSpeed3h", [])
-    wind  = round(sum(winds[:8]) / len(winds[:8])) if winds else "—"
+    wind  = _convert_wind_speed(sum(winds[:8]) / len(winds[:8]), units) if winds else "—"
 
-    # Daily forecast
-    n_days       = int(plugin_settings.get("forecastDays", 7))
+    n_days = int(plugin_settings.get("forecastDays", 7))
     forecast_days = []
     for day in forecast_raw[:n_days]:
         try:
@@ -262,37 +638,68 @@ def _parse_meteoswiss(data: dict, plugin_settings: dict) -> dict:
         forecast_days.append({
             "day":         day_name,
             "description": _msw_desc(d_icon),
-            "temp_max":    day.get("temperatureMax", "—"),
-            "temp_min":    day.get("temperatureMin", "—"),
+            "temp_max":    _convert_temperature(day.get("temperatureMax", "—"), units),
+            "temp_min":    _convert_temperature(day.get("temperatureMin", "—"), units),
             "icon_path":   _msw_icon_path(d_icon),
             "precip":      day.get("precipitation", 0),
         })
 
-    now = datetime.datetime.now()
+    if not forecast_days and fallback.get("forecast_days"):
+        for day in fallback["forecast_days"][:n_days]:
+            forecast_days.append({
+                **day,
+                "icon_path": _msw_icon_path(_wmo_to_msw_icon_code(day.get("wmo_code", 0))),
+            })
+
+    now = datetime.datetime.now(tz)
     moon_icon, moon_name = _moon_phase(now.date())
+    moon_asset = _moon_phase_asset(moon_name)
     rain_now = (graph.get("precipitation1h") or [0])[0]
+    rain_value = round(rain_now, 1) if isinstance(rain_now, (int, float)) else rain_now
+    if rain_value in (0, "—") and fallback.get("rain") not in (None, "", "—"):
+        rain_value = fallback.get("rain")
+
+    today_fc = forecast_raw[0] if forecast_raw else {}
+    temp_max_today = _convert_temperature(today_fc.get("temperatureMax", "—"), units) if today_fc else "—"
+    temp_min_today = _convert_temperature(today_fc.get("temperatureMin", "—"), units) if today_fc else "—"
 
     return {
-        "temperature":         round(temp) if isinstance(temp, (int, float)) else temp,
-        "feels_like":          "—",
+        "temperature":         fallback.get("temperature", _convert_temperature(temp, units)),
+        "feels_like":          fallback.get("feels_like", "—"),
         "weather_description": _msw_desc(icon_code),
         "weather_icon_path":   _msw_icon_path(icon_code),
-        "humidity":            "—",
-        "wind_speed":          wind,
-        "pressure":            "—",
-        "rain":                rain_now,
-        "uvi":                 "—",
-        "sunrise":             sunrise,
-        "sunset":              sunset,
+        "humidity":            fallback.get("humidity", "—"),
+        "wind_speed":          fallback.get("wind_speed", wind),
+        "pressure":            fallback.get("pressure", "—"),
+        "visibility":          fallback.get("visibility", "—"),
+        "rain":                rain_value,
+        "uvi":                 fallback.get("uvi", "—"),
+        "sunrise":             sunrise if sunrise != "—" else fallback.get("sunrise", "—"),
+        "sunset":              sunset if sunset != "—" else fallback.get("sunset", "—"),
+        "temp_max_today":      temp_max_today if temp_max_today != "—" else fallback.get("temp_max_today", "—"),
+        "temp_min_today":      temp_min_today if temp_min_today != "—" else fallback.get("temp_min_today", "—"),
         "moon_phase_icon":     moon_icon,
         "moon_phase":          moon_name,
-        "hourly_graph_svg":    _build_hourly_svg(hourly_list),
+        "moon_phase_asset":    moon_asset,
+        "hourly_graph_svg":    _build_hourly_svg(hourly_list) if hourly_list else fallback.get("hourly_graph_svg", ""),
         "forecast_days":       forecast_days,
-        "current_date":        now.strftime("%a, %d %b %Y"),
+        "current_date":        _format_display_date(now),
         "current_time":        now.strftime("%H:%M"),
         "refresh_time":        now.strftime("%H:%M"),
         "wmo_code":            None,
         "msw_icon_code":       icon_code,
+        "temperature_unit_symbol": _temperature_unit_symbol(units),
+        "wind_unit":           "mph" if units == "imperial" else "km/h",
+        "rain_unit":           "in" if units == "imperial" else "mm",
+        "wind_icon_path":      _asset_path("wind.svg"),
+        "humidity_icon_path":  _asset_path("humidity.svg"),
+        "pressure_icon_path":  _asset_path("pressure.svg"),
+        "rain_icon_path":      _asset_path("rain.svg"),
+        "sunrise_icon_path":   _asset_path("sunrise.svg"),
+        "sunset_icon_path":    _asset_path("sunset.svg"),
+        "visibility_icon_path": _asset_path("visibility.svg"),
+        "uvi_icon_path":       _asset_path("uvi.svg"),
+        "timezone_name":       timezone_name,
     }
 
 
@@ -319,38 +726,46 @@ def _fetch_open_meteo(lat: float, lon: float, units: str) -> dict:
     import urllib.request
     temp_unit = "fahrenheit" if units == "imperial" else "celsius"
     wind_unit = "mph" if units == "imperial" else "kmh"
+    precip_unit = "inch" if units == "imperial" else "mm"
     url = (
         f"https://api.open-meteo.com/v1/forecast"
         f"?latitude={lat}&longitude={lon}"
         f"&current=temperature_2m,apparent_temperature,relative_humidity_2m,"
-        f"wind_speed_10m,surface_pressure,weather_code,precipitation"
+        f"wind_speed_10m,surface_pressure,weather_code,precipitation,visibility"
         f"&hourly=temperature_2m,weather_code"
         f"&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max"
         f"&temperature_unit={temp_unit}&wind_speed_unit={wind_unit}"
-        f"&precipitation_unit=mm&forecast_days=7&timezone=auto"
+        f"&precipitation_unit={precip_unit}&forecast_days=7&timezone=auto"
     )
     with urllib.request.urlopen(url, timeout=10) as resp:
         return json.loads(resp.read())
 
 
-def _parse_open_meteo(data: dict, plugin_settings: dict) -> dict:
+def _parse_open_meteo(data: dict, plugin_settings: dict, timezone_name: str) -> dict:
     """Parse Open-Meteo JSON into the template context dict."""
     cur    = data.get("current", {})
     daily  = data.get("daily", {})
     hourly = data.get("hourly", {})
+    source_timezone = data.get("timezone") or timezone_name
+    tz = _safe_timezone(timezone_name)
+    units = plugin_settings.get("units", "metric")
 
     temp     = cur.get("temperature_2m", "—")
     feels    = cur.get("apparent_temperature", "—")
     humidity = cur.get("relative_humidity_2m", "—")
     wind     = cur.get("wind_speed_10m", "—")
     pressure = cur.get("surface_pressure", "—")
+    visibility = cur.get("visibility", "—")
     rain     = cur.get("precipitation", 0)
     code     = cur.get("weather_code", 0)
 
     # Hourly forecast for graph (next 24 h)
     h_times = hourly.get("time", [])[:24]
     h_temps = hourly.get("temperature_2m", [])[:24]
-    hourly_list = [{"time": t[11:16], "temp": v} for t, v in zip(h_times, h_temps)]
+    hourly_list = [
+        {"time": _convert_iso_time(t, source_timezone, timezone_name), "temp": v}
+        for t, v in zip(h_times, h_temps)
+    ]
 
     # Daily forecast
     d_dates   = daily.get("time", [])
@@ -369,42 +784,73 @@ def _parse_open_meteo(data: dict, plugin_settings: dict) -> dict:
         except Exception:
             day_name = d_dates[i] if i < len(d_dates) else "—"
         wmo = d_codes[i] if i < len(d_codes) else 0
+        high = d_hi[i] if i < len(d_hi) else "—"
+        low = d_lo[i] if i < len(d_lo) else "—"
+        if units == "standard":
+            high = _convert_temperature(high, units)
+            low = _convert_temperature(low, units)
+        elif isinstance(high, float):
+            high = round(high)
+        elif isinstance(high, int):
+            high = high
+        if units != "standard":
+            if isinstance(low, float):
+                low = round(low)
+            elif isinstance(low, int):
+                low = low
         forecast_days.append({
             "day":         day_name,
             "description": _wmo_desc(wmo),
-            "temp_max":    round(d_hi[i]) if i < len(d_hi) else "—",
-            "temp_min":    round(d_lo[i]) if i < len(d_lo) else "—",
+            "temp_max":    high,
+            "temp_min":    low,
             "icon_path":   _wmo_icon_path(wmo),
             "wmo_code":    wmo,
         })
 
-    sunrise = d_sunrise[0][11:16] if d_sunrise else "—"
-    sunset  = d_sunset[0][11:16]  if d_sunset  else "—"
+    sunrise = _convert_iso_time(d_sunrise[0], source_timezone, timezone_name) if d_sunrise else "—"
+    sunset  = _convert_iso_time(d_sunset[0], source_timezone, timezone_name) if d_sunset  else "—"
     uvi     = round(d_uvi[0], 1)  if d_uvi     else "—"
 
-    now = datetime.datetime.now()
+    now = datetime.datetime.now(tz)
     moon_icon, moon_name = _moon_phase(now.date())
+    moon_asset = _moon_phase_asset(moon_name)
 
     return {
-        "temperature":         round(temp)     if isinstance(temp, float)     else temp,
-        "feels_like":          round(feels)    if isinstance(feels, float)    else feels,
+        "temperature":         _convert_temperature(temp, units) if units == "standard" else (round(temp) if isinstance(temp, float) else temp),
+        "feels_like":          _convert_temperature(feels, units) if units == "standard" else (round(feels) if isinstance(feels, float) else feels),
         "weather_description": _wmo_desc(code),
         "weather_icon_path":   _wmo_icon_path(code),
         "humidity":            humidity,
         "wind_speed":          round(wind)     if isinstance(wind, float)     else wind,
         "pressure":            round(pressure) if isinstance(pressure, float) else pressure,
+        "visibility":          _format_visibility(visibility),
         "rain":                rain,
         "uvi":                 uvi,
         "sunrise":             sunrise,
         "sunset":              sunset,
+        "temp_max_today":      (_convert_temperature(d_hi[0], units) if units == "standard" else round(d_hi[0])) if d_hi else "—",
+        "temp_min_today":      (_convert_temperature(d_lo[0], units) if units == "standard" else round(d_lo[0])) if d_lo else "—",
         "moon_phase_icon":     moon_icon,
         "moon_phase":          moon_name,
+        "moon_phase_asset":    moon_asset,
         "hourly_graph_svg":    _build_hourly_svg(hourly_list),
         "forecast_days":       forecast_days,
-        "current_date":        now.strftime("%a, %d %b %Y"),
+        "current_date":        _format_display_date(now),
         "current_time":        now.strftime("%H:%M"),
         "refresh_time":        now.strftime("%H:%M"),
         "wmo_code":            code,
+        "temperature_unit_symbol": _temperature_unit_symbol(units),
+        "wind_unit":           "mph" if units == "imperial" else "km/h",
+        "rain_unit":           "in" if units == "imperial" else "mm",
+        "wind_icon_path":      _asset_path("wind.svg"),
+        "humidity_icon_path":  _asset_path("humidity.svg"),
+        "pressure_icon_path":  _asset_path("pressure.svg"),
+        "rain_icon_path":      _asset_path("rain.svg"),
+        "sunrise_icon_path":   _asset_path("sunrise.svg"),
+        "sunset_icon_path":    _asset_path("sunset.svg"),
+        "visibility_icon_path": _asset_path("visibility.svg"),
+        "uvi_icon_path":       _asset_path("uvi.svg"),
+        "timezone_name":       timezone_name,
     }
 
 
@@ -439,25 +885,39 @@ class WeatherPlugin(BasePlugin):
                 "Open the weather plugin settings and set your location."
             )
 
-        provider = plugin_settings.get("weatherProvider", "OpenMeteo")
+        provider = plugin_settings.get("weatherProvider", "MeteoSwiss")
         units    = plugin_settings.get("units", "metric")
+        location_label = (plugin_settings.get("city") or "").strip()
 
         if provider == "MeteoSwiss":
             raw = _fetch_meteoswiss(lat, lon)
-            ctx = _parse_meteoswiss(raw, plugin_settings)
+            display_timezone = _resolve_display_timezone(provider, raw, plugin_settings, device_config)
+            supplemental_ctx = None
+            if units != "metric" or not raw.get("forecast") or not raw.get("graph"):
+                supplemental_raw = _fetch_open_meteo(lat, lon, units)
+                supplemental_ctx = _parse_open_meteo(supplemental_raw, plugin_settings, display_timezone)
+            ctx = _parse_meteoswiss(raw, plugin_settings, display_timezone, supplemental_ctx=supplemental_ctx)
+            location_label = location_label or raw.get("_location_label")
         elif provider == "OpenMeteo":
             raw = _fetch_open_meteo(lat, lon, units)
-            ctx = _parse_open_meteo(raw, plugin_settings)
+            display_timezone = _resolve_display_timezone(provider, raw, plugin_settings, device_config)
+            ctx = _parse_open_meteo(raw, plugin_settings, display_timezone)
         else:
             raise RuntimeError(f"Unknown provider: '{provider}'.")
 
         # Title and city
         title_sel = plugin_settings.get("titleSelection", "custom")
-        ctx["title"] = (plugin_settings.get("customTitle", "Weather")
-                        if title_sel == "custom"
-                        else plugin_settings.get("city", "Weather"))
-        ctx["city"] = plugin_settings.get("city", "—")
+        custom_title = (plugin_settings.get("customTitle") or "").strip()
+        if not location_label and (title_sel == "location" or not custom_title):
+            location_label = _reverse_geocode_location_label(lat, lon)
+        ctx["city"] = location_label or custom_title or "Weather"
+        ctx["title"] = (
+            ctx["city"] if title_sel == "location"
+            else (custom_title or ctx["city"] or "Weather")
+        )
         ctx["plugin_settings"] = plugin_settings
+        ctx["source_name"] = "MeteoSwiss" if provider == "MeteoSwiss" else "Open-Meteo"
+        ctx["custom_overlay_blocks"] = _parse_custom_overlay_blocks(plugin_settings)
 
         # Display dimensions from device config
         try:

@@ -60,7 +60,7 @@ document.getElementById('btnForm').addEventListener('submit', function(e) {
     .then(r => r.json())
     .then(res => {
       if (typeof showResponseModal === 'function') {
-        showResponseModal(res.message, res.status === 'ok' ? 'success' : 'failure');
+        showResponseModal(res.status === 'ok' ? 'success' : 'failure', res.message);
       } else {
         alert(res.message);
       }

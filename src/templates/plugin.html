@@ -6,7 +6,7 @@
     <title>{{ plugin.display_name }} Settings</title>
     <script>
         (function() {
-            const stored = localStorage.getItem('inkypi-theme');
+            const stored = localStorage.getItem('e-inkpi-theme');
             const theme = stored || 'light';
             if (theme === 'dark') {
                 document.documentElement.setAttribute('data-theme', 'dark');
@@ -404,11 +404,12 @@
 
             <div class="buttons-container">
                 {% if plugin_instance %}
+                    <button type="button" onclick="handleAction('update_now')" class="action-button">Update Display</button>
                     <button type="button" onclick="handleAction('update_instance')" class="action-button">Save</button>
                     <button type="button" onclick="openModal('scheduleModal')" class="action-button right">Save As...</button>
                 {% else %}
-                    <button type="button" onclick="handleAction()" class="action-button left">Update Now</button>
-                    <button type="button" onclick="openModal('scheduleModal')" class="action-button right">Add to Playlist</button>
+                    <button type="button" onclick="handleAction('update_now')" class="action-button">Update Display</button>
+                    <button type="button" onclick="openModal('scheduleModal')" class="action-button">Add to Playlist</button>
                 {% endif %}
             </div>
         </form>

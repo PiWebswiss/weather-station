@@ -7,14 +7,17 @@
     <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='styles/main.css') }}">
     <script>
         (function() {
-            const stored = localStorage.getItem('inkypi-theme');
+            const stored = localStorage.getItem('e-inkpi-theme');
             if (stored === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
         })();
 
         let lastModified = null;
+        let currentImageUrl = null;
         const refreshIntervalMs = 1000; // 1-second polling
+        let currentPreviewMode = localStorage.getItem('e-inkpi-preview-mode') || 'image';
 
         async function refreshImage() {
+            if (currentPreviewMode !== 'image') return false;
             const img = document.querySelector('.preview-img');
             if (!img) return;
             try {
@@ -24,16 +27,17 @@
                 if (response.status === 304) return false;
                 if (!response.ok) return false;
                 const blob = await response.blob();
-                img.src = URL.createObjectURL(blob);
+                const nextUrl = URL.createObjectURL(blob);
+                const previousUrl = currentImageUrl;
+                currentImageUrl = nextUrl;
+                img.src = nextUrl;
+                if (previousUrl) {
+                    URL.revokeObjectURL(previousUrl);
+                }
                 lastModified = response.headers.get('Last-Modified');
                 return true;
             } catch (e) { console.error('Image refresh error:', e); return false; }
         }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            refreshImage();
-            setInterval(refreshImage, refreshIntervalMs);
-        });
     </script>
     <script src="{{ url_for('static', filename='scripts/image_modal.js') }}"></script>
     <style>
@@ -81,6 +85,66 @@
         }
         .update-toast.visible { opacity: 1; }
         .update-toast.error { color: #e05; }
+        .preview-mode-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 0 18px 14px;
+            flex-wrap: wrap;
+        }
+        .preview-mode-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: var(--card-2);
+        }
+        .preview-mode-btn {
+            border: none;
+            background: transparent;
+            color: var(--muted);
+            border-radius: 999px;
+            padding: 8px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            box-shadow: none;
+        }
+        .preview-mode-btn:hover {
+            transform: none;
+            color: var(--ink);
+        }
+        .preview-mode-btn.active {
+            background: var(--card);
+            color: var(--ink);
+            box-shadow: 0 4px 14px rgba(26, 18, 12, 0.08);
+        }
+        .preview-open-link {
+            white-space: nowrap;
+        }
+        .preview-panel {
+            padding: 0 18px 18px;
+        }
+        .live-watch-frame {
+            width: 100%;
+            min-height: 460px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--card-2);
+            display: block;
+        }
+        @media (max-width: 720px) {
+            .preview-mode-bar,
+            .preview-panel {
+                padding-left: 16px;
+                padding-right: 16px;
+            }
+            .live-watch-frame {
+                min-height: 420px;
+            }
+        }
     </style>
 </head>
 <body class="wp-admin">
@@ -94,6 +158,7 @@
         </div>
         <div class="adminbar-links">
             <a href="{{ url_for('settings.settings_page') }}" class="adminbar-link">Settings</a>
+            <a href="{{ url_for('buttons.button_settings') }}" class="adminbar-link">Buttons</a>
             <a href="{{ url_for('playlist.playlists') }}" class="adminbar-link">Playlists</a>
             <a href="{{ url_for('apikeys.apikeys_page') }}" class="adminbar-link">API Keys</a>
             <button class="adminbar-link dark-mode-toggle" title="Toggle Dark Mode" aria-label="Toggle Dark Mode"></button>
@@ -114,6 +179,10 @@
                 <a href="{{ url_for('settings.settings_page') }}" class="sidebar-link">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
                     Device Settings
+                </a>
+                <a href="{{ url_for('buttons.button_settings') }}" class="sidebar-link">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 10h.01M12 10h.01M17 10h.01M7 14h.01M12 14h.01M17 14h.01"/></svg>
+                    Buttons
                 </a>
 
                 <div class="sidebar-section-label">Content</div>
@@ -145,8 +214,28 @@
                         <span id="previewStatus">Loading…</span>
                     </div>
                 </div>
-                <div class="image-container">
-                    <img class="preview-img" src="{{ url_for('static', filename='images/current_image.png') }}" alt="Current display output">
+                <div class="preview-mode-bar">
+                    <div class="preview-mode-toggle" role="tablist" aria-label="Preview mode">
+                        <button type="button" class="preview-mode-btn active" data-preview-mode="image">Display Image</button>
+                        <button type="button" class="preview-mode-btn" data-preview-mode="watch">Interactive Watch</button>
+                    </div>
+                    <a href="{{ url_for('main.live_watch') }}" class="wp-btn-ghost preview-open-link" target="_blank" rel="noopener">
+                        Open Full Watch
+                    </a>
+                </div>
+                <div class="preview-panel" data-preview-panel="image">
+                    <div class="image-container">
+                        <img class="preview-img" src="{{ url_for('static', filename='images/current_image.png') }}" alt="Current display output">
+                    </div>
+                </div>
+                <div class="preview-panel" data-preview-panel="watch" hidden>
+                    <iframe
+                        id="liveWatchFrame"
+                        class="live-watch-frame"
+                        title="Interactive watch"
+                        loading="lazy"
+                        data-src="{{ url_for('main.live_watch', embed=1) }}"
+                    ></iframe>
                 </div>
                 <!-- Action bar: countdown + update button -->
                 <div class="preview-action-bar">
@@ -200,6 +289,39 @@
     <script>
         // ── Live preview status ────────────────────────────────────────────
         const statusEl = document.getElementById('previewStatus');
+        const previewModeButtons = Array.from(document.querySelectorAll('[data-preview-mode]'));
+        const previewPanels = Array.from(document.querySelectorAll('[data-preview-panel]'));
+        const liveWatchFrame = document.getElementById('liveWatchFrame');
+
+        function ensureWatchLoaded() {
+            if (liveWatchFrame && !liveWatchFrame.getAttribute('src')) {
+                liveWatchFrame.setAttribute('src', liveWatchFrame.dataset.src);
+            }
+        }
+
+        function setPreviewMode(mode) {
+            currentPreviewMode = mode === 'watch' ? 'watch' : 'image';
+            localStorage.setItem('e-inkpi-preview-mode', currentPreviewMode);
+
+            previewModeButtons.forEach(button => {
+                const active = button.dataset.previewMode === currentPreviewMode;
+                button.classList.toggle('active', active);
+                button.setAttribute('aria-pressed', String(active));
+            });
+
+            previewPanels.forEach(panel => {
+                panel.hidden = panel.dataset.previewPanel !== currentPreviewMode;
+            });
+
+            if (currentPreviewMode === 'watch') {
+                ensureWatchLoaded();
+                statusEl.textContent = 'Interactive watch';
+            } else {
+                statusEl.textContent = 'Checking for updates…';
+                trackedRefresh();
+            }
+        }
+
         async function trackedRefresh() {
             const img = document.querySelector('.preview-img');
             const before = img ? img.src : null;
@@ -210,7 +332,10 @@
             }
         }
         document.addEventListener('DOMContentLoaded', () => {
-            trackedRefresh();
+            previewModeButtons.forEach(button => {
+                button.addEventListener('click', () => setPreviewMode(button.dataset.previewMode));
+            });
+            setPreviewMode(currentPreviewMode);
             setInterval(trackedRefresh, refreshIntervalMs);
         });
 
@@ -298,7 +423,7 @@
         // ── View toggle (grid / list) ──────────────────────────────────────
         const viewToggle = document.getElementById('viewToggle');
         const pluginsContainer = document.getElementById('pluginsContainer');
-        let currentView = localStorage.getItem('inkypi-plugins-view') || 'grid';
+        let currentView = localStorage.getItem('e-inkpi-plugins-view') || 'grid';
 
         function updateView() {
             if (currentView === 'list') {
@@ -311,7 +436,7 @@
         }
         viewToggle.addEventListener('click', () => {
             currentView = currentView === 'grid' ? 'list' : 'grid';
-            localStorage.setItem('inkypi-plugins-view', currentView);
+            localStorage.setItem('e-inkpi-plugins-view', currentView);
             updateView();
         });
         updateView();

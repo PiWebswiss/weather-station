@@ -39,7 +39,7 @@ from waitress import serve
 logger = logging.getLogger(__name__)
 
 # Parse command line arguments
-parser = argparse.ArgumentParser(description='InkyPi Display Server')
+parser = argparse.ArgumentParser(description='E-InkPi Display Server')
 parser.add_argument('--dev', action='store_true', help='Run in development mode')
 args = parser.parse_args()
 
@@ -48,11 +48,11 @@ if args.dev:
     Config.config_file = os.path.join(Config.BASE_DIR, "config", "device_dev.json")
     DEV_MODE = True
     PORT = 8080
-    logger.info("Starting InkyPi in DEVELOPMENT mode on port 8080")
+    logger.info("Starting E-InkPi in DEVELOPMENT mode on port 8080")
 else:
     DEV_MODE = False
     PORT = 80
-    logger.info("Starting InkyPi in PRODUCTION mode on port 80")
+    logger.info("Starting E-InkPi in PRODUCTION mode on port 80")
 logging.getLogger('waitress.queue').setLevel(logging.ERROR)
 app = Flask(__name__)
 template_dirs = [

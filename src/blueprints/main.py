@@ -10,6 +10,12 @@ def main_page():
     device_config = current_app.config['DEVICE_CONFIG']
     return render_template('inky.html', config=device_config.get_config(), plugins=device_config.get_plugins())
 
+@main_bp.route('/live')
+def live_watch():
+    device_config = current_app.config['DEVICE_CONFIG']
+    embed = request.args.get('embed', '').lower() in {'1', 'true', 'yes'}
+    return render_template('live.html', config=device_config.get_config(), embed=embed)
+
 @main_bp.route('/api/current_image')
 def get_current_image():
     """Serve current_image.png with conditional request support (If-Modified-Since)."""

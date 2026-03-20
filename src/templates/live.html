@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ config.name }} - Live Watch</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='styles/main.css') }}">
+<script>
+(function () {
+  let storedTheme = null;
+  try {
+    storedTheme = localStorage.getItem('e-inkpi-live-theme') || localStorage.getItem('e-inkpi-theme');
+  } catch (error) {
+    storedTheme = null;
+  }
+  if (storedTheme === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+})();
+</script>
+<style>
+body.live-watch-body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  overflow: hidden;
+  color: var(--ink);
+  background:
+    radial-gradient(700px 420px at 14% 4%, rgba(47, 111, 106, 0.18), transparent 65%),
+    radial-gradient(720px 440px at 88% 8%, rgba(196, 104, 59, 0.16), transparent 60%),
+    linear-gradient(180deg, var(--bg), var(--bg-2));
+  font-family: "Jost", "Segoe UI", sans-serif;
+}
+
+body.live-watch-body--embed {
+  min-height: 100%;
+}
+
+.live-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 24px 0;
+}
+
+.live-topbar-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 13px;
+  letter-spacing: 0.03em;
+}
+
+.live-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.58);
+  backdrop-filter: blur(12px);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+[data-theme="dark"] .live-back-link {
+  background: rgba(24, 24, 26, 0.7);
+}
+
+.live-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(300px, 420px);
+  gap: 24px;
+  padding: 24px;
+}
+
+.live-shell.is-embed {
+  min-height: 100%;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  padding: 16px;
+}
+
+.live-shell.is-embed .watch-sidebar {
+  display: none;
+}
+
+.live-shell.is-embed .watch-stage {
+  min-height: calc(100vh - 32px);
+  border-radius: 28px;
+}
+
+.live-shell.is-embed .watch-stage-inner {
+  padding: 18px;
+}
+
+.live-shell.is-embed .watch-face-shell {
+  width: 100%;
+  gap: 12px;
+}
+
+.live-shell.is-embed .watch-face-card {
+  width: min(100%, 560px);
+}
+
+.live-shell.is-embed .live-support-readout {
+  display: none;
+}
+
+.watch-stage,
+.watch-sidebar {
+  position: relative;
+  border: 1px solid var(--border);
+  background: rgba(255, 253, 248, 0.76);
+  backdrop-filter: blur(20px);
+  box-shadow: var(--shadow);
+}
+
+[data-theme="dark"] .watch-stage,
+[data-theme="dark"] .watch-sidebar {
+  background: rgba(37, 37, 40, 0.82);
+}
+
+.watch-stage {
+  border-radius: 32px;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.watch-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 38%, rgba(255, 255, 255, 0.55), transparent 38%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.22), transparent 48%);
+  pointer-events: none;
+}
+
+.watch-stage-inner {
+  position: relative;
+  min-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 36px;
+}
+
+.watch-aura {
+  position: absolute;
+  width: min(56vw, 520px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(47, 111, 106, 0.18), transparent 48%),
+    radial-gradient(circle at 50% 50%, rgba(196, 104, 59, 0.18), transparent 66%);
+  filter: blur(16px);
+  opacity: 0.95;
+}
+
+.watch-face-shell {
+  position: relative;
+  width: min(100%, 640px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  z-index: 1;
+}
+
+.watch-face-card {
+  width: min(100%, 520px);
+  min-height: min(72vw, 520px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.42)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 30px 48px rgba(27, 26, 24, 0.12);
+}
+
+[data-theme="dark"] .watch-face-card {
+  border-color: rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(180deg, rgba(34, 34, 38, 0.9), rgba(28, 28, 30, 0.76)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 30px 52px rgba(0, 0, 0, 0.32);
+}
+
+.watch-face-card.is-digital {
+  align-items: stretch;
+}
+
+.watch-face-card.is-word {
+  align-items: center;
+}
+
+#clockCanvas {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.digital-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.watch-face-card > #digitalPanel {
+  width: 100%;
+  justify-content: center;
+}
+
+.digital-panel-main {
+  font-size: clamp(42px, 8vw, 108px);
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  line-height: 0.95;
+  font-variant-numeric: tabular-nums;
+}
+
+.digital-panel-meta {
+  color: var(--muted);
+  font-size: clamp(14px, 2.2vw, 18px);
+  letter-spacing: 0.02em;
+}
+
+.digital-panel-zone {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.word-clock {
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  width: min(100%, 420px);
+  max-width: 100%;
+  margin: 0 auto;
+  align-self: center;
+}
+
+.word-clock-row {
+  display: grid;
+  grid-template-columns: repeat(14, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.word-clock-letter {
+  text-align: center;
+  min-width: 0;
+  font-size: clamp(11px, 1.55vw, 22px);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  opacity: 0.14;
+  transition: opacity 0.25s ease, color 0.25s ease, transform 0.25s ease;
+}
+
+.word-clock-letter.lit {
+  opacity: 1;
+  color: var(--accent-2);
+  transform: scale(1.04);
+}
+
+.watch-sidebar {
+  border-radius: 28px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.sidebar-eyebrow {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.sidebar-title {
+  font-family: "Napoli", "Jost", sans-serif;
+  font-size: clamp(28px, 4vw, 38px);
+  line-height: 1;
+  margin: 0;
+}
+
+.sidebar-copy {
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.control-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.control-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.face-selector,
+.toggle-row,
+.sidebar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.watch-btn,
+.watch-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.watch-link {
+  text-decoration: none;
+}
+
+.watch-btn:hover,
+.watch-link:hover {
+  transform: translateY(-1px);
+  border-color: rgba(47, 111, 106, 0.4);
+}
+
+.watch-btn.is-active {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border-color: transparent;
+  color: #fff;
+}
+
+.watch-btn.is-secondary.is-active {
+  background: var(--accent-soft);
+  border-color: rgba(47, 111, 106, 0.25);
+  color: var(--accent);
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.status-card {
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: var(--card-2);
+}
+
+.status-label {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 7px;
+}
+
+.status-value {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.watch-hint {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--accent-soft);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.watch-footer {
+  margin-top: auto;
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+.watch-face-card.face-analog #clockCanvas {
+  display: block;
+}
+
+.watch-face-card.face-analog #wordClockEl,
+.watch-face-card.face-analog #digitalPanel {
+  display: none !important;
+}
+
+.watch-face-card.face-digital #digitalPanel {
+  display: flex !important;
+}
+
+.watch-face-card.face-digital #clockCanvas,
+.watch-face-card.face-digital #wordClockEl {
+  display: none !important;
+}
+
+.watch-face-card.face-word #wordClockEl {
+  display: flex !important;
+}
+
+.watch-face-card.face-word #clockCanvas,
+.watch-face-card.face-word #digitalPanel {
+  display: none !important;
+}
+
+@media (max-width: 1040px) {
+  .live-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .watch-stage {
+    min-height: 540px;
+  }
+}
+
+@media (max-width: 720px) {
+  .live-topbar {
+    padding: 16px 16px 0;
+  }
+
+  .live-shell {
+    padding: 16px;
+  }
+
+  .watch-stage-inner {
+    padding: 20px;
+  }
+
+  .watch-face-card {
+    min-height: 360px;
+    padding: 18px;
+  }
+
+  .word-clock {
+    width: min(100%, 330px);
+  }
+
+  .word-clock-letter {
+    font-size: clamp(10px, 2vw, 16px);
+  }
+
+  .status-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 540px) {
+  body.live-watch-body {
+    overflow: auto;
+  }
+
+  .watch-stage {
+    min-height: 460px;
+  }
+
+  .watch-aura {
+    width: 82vw;
+  }
+
+  .live-shell.is-embed .watch-stage {
+    min-height: 100vh;
+  }
+
+  .word-clock {
+    width: min(100%, 286px);
+  }
+
+  .word-clock-row {
+    gap: 3px;
+  }
+
+  .word-clock-letter {
+    font-size: 11px;
+    letter-spacing: 0.02em;
+  }
+}
+</style>
+</head>
+<body class="live-watch-body{% if embed %} live-watch-body--embed{% endif %}">
+{% if not embed %}
+<header class="live-topbar">
+  <a href="{{ url_for('main.main_page') }}" class="live-back-link">Back to Dashboard</a>
+  <div class="live-topbar-meta">
+    <span>{{ config.name }}</span>
+    <span>&middot;</span>
+    <span>{{ config.timezone or "UTC" }}</span>
+  </div>
+</header>
+{% endif %}
+
+<main class="live-shell{% if embed %} is-embed{% endif %}">
+  <section class="watch-stage">
+    <div class="watch-stage-inner">
+      <div class="watch-aura" aria-hidden="true"></div>
+      <div class="watch-face-shell">
+        <div class="watch-face-card" id="watchFaceCard">
+          <canvas id="clockCanvas" aria-label="Interactive analog watch"></canvas>
+          <div class="word-clock" id="wordClockEl" aria-hidden="true"></div>
+          <div class="digital-panel" id="digitalPanel" hidden>
+            <div class="digital-panel-main" id="digitalTime">00:00</div>
+            <div class="digital-panel-meta" id="digitalDate">Loading date…</div>
+            <div class="digital-panel-zone" id="digitalZone">UTC</div>
+          </div>
+        </div>
+        <div class="digital-panel live-support-readout" id="supportReadout">
+          <div class="digital-panel-main" id="supportTime">00:00</div>
+          <div class="digital-panel-meta" id="supportDate">Loading date…</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <aside class="watch-sidebar">
+    <div>
+      <div class="sidebar-eyebrow">Interactive Mode</div>
+      <h1 class="sidebar-title">Real-time Watch</h1>
+    </div>
+
+    <p class="sidebar-copy">
+      This view is rendered live in the browser, so the hands and time update in real time instead of waiting for the static preview image.
+    </p>
+
+    <div class="control-block">
+      <div class="control-label">Face</div>
+      <div class="face-selector" id="faceSelector">
+        <button type="button" class="watch-btn" data-face="analog">Analog</button>
+        <button type="button" class="watch-btn" data-face="digital">Digital</button>
+        <button type="button" class="watch-btn" data-face="word">Word</button>
+      </div>
+    </div>
+
+    <div class="control-block">
+      <div class="control-label">Controls</div>
+      <div class="toggle-row">
+        <button type="button" class="watch-btn is-secondary" id="themeBtn">Theme</button>
+        <button type="button" class="watch-btn is-secondary" id="secondsBtn">Seconds</button>
+      </div>
+    </div>
+
+    <div class="status-grid">
+      <div class="status-card">
+        <span class="status-label">Timezone</span>
+        <span class="status-value" id="timezoneValue">{{ config.timezone or "UTC" }}</span>
+      </div>
+      <div class="status-card">
+        <span class="status-label">Next Refresh</span>
+        <span class="status-value" id="refreshValue">Checking…</span>
+      </div>
+      <div class="status-card">
+        <span class="status-label">Current Plugin</span>
+        <span class="status-value" id="pluginValue">—</span>
+      </div>
+      <div class="status-card">
+        <span class="status-label">Playlist</span>
+        <span class="status-value" id="playlistValue">—</span>
+      </div>
+    </div>
+
+    <p class="watch-hint" id="watchHint">
+      Analog mode is best for a classic watch feel, while digital and word modes give you lighter browsing-friendly views.
+    </p>
+
+    <div class="sidebar-actions">
+      {% if embed %}
+      <a class="watch-link" href="{{ url_for('main.live_watch') }}" target="_top">Open Full Watch</a>
+      {% else %}
+      <a class="watch-link" href="{{ url_for('main.main_page') }}">Back to Dashboard</a>
+      {% endif %}
+    </div>
+
+    <div class="watch-footer" id="watchFooter">Syncing display status…</div>
+  </aside>
+</main>
+
+<script>
+const DEVICE_NAME = {{ (config.name or 'E-InkPi') | tojson }};
+const DEVICE_TIMEZONE = {{ (config.timezone or 'UTC') | tojson }};
+const STATUS_URL = {{ url_for('main.get_status') | tojson }};
+const STORAGE_KEYS = {
+  face: 'e-inkpi-live-face',
+  seconds: 'e-inkpi-live-seconds',
+  theme: 'e-inkpi-live-theme'
+};
+
+const FACE_DESCRIPTIONS = {
+  analog: 'Analog mode is best for a classic watch feel, with a live second hand and a strong centered dial.',
+  digital: 'Digital mode turns the watch into a crisp bedside-style clock with large numerals and timezone context.',
+  word: 'Word mode spells out the time for a more decorative display while keeping the exact digital readout below.'
+};
+
+function safeStorageGet(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch (error) {
+    return null;
+  }
+}
+
+function safeStorageSet(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch (error) {
+    // Ignore browsers or modes that block storage access.
+  }
+}
+
+const WORD_GRID = [
+  ['I', 'T', '·', 'I', 'S', '·', 'A', '·', 'S', 'A', 'M', 'P', 'M'],
+  ['A', '·', 'Q', 'U', 'A', 'R', 'T', 'E', 'R', '·', 'D', 'C', '·'],
+  ['T', 'W', 'E', 'N', 'T', 'Y', '·', 'F', 'I', 'V', 'E', '·', 'X'],
+  ['H', 'A', 'L', 'F', '·', 'S', 'T', 'E', 'N', '·', 'F', '·', 'T', 'O'],
+  ['P', 'A', 'S', 'T', '·', 'E', 'R', 'U', 'N', 'I', 'N', 'E', '·'],
+  ['O', 'N', 'E', '·', 'S', 'I', 'X', '·', 'T', 'H', 'R', 'E', 'E'],
+  ['F', 'O', 'U', 'R', '·', 'F', 'I', 'V', 'E', '·', 'T', 'W', 'O'],
+  ['E', 'I', 'G', 'H', 'T', '·', 'E', 'L', 'E', 'V', 'E', 'N', '·'],
+  ['S', 'E', 'V', 'E', 'N', '·', 'T', 'W', 'E', 'L', 'V', 'E', '·'],
+  ['T', 'E', 'N', '·', 'S', 'E', '·', 'O', 'C', 'L', 'O', 'C', 'K'],
+];
+
+let face = safeStorageGet(STORAGE_KEYS.face) || 'analog';
+if (!['analog', 'digital', 'word'].includes(face)) {
+  face = 'analog';
+}
+
+let showSeconds = safeStorageGet(STORAGE_KEYS.seconds);
+showSeconds = showSeconds === null ? true : showSeconds === 'true';
+
+let isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+let tickTimer = null;
+let statusTimer = null;
+let canvasSize = 320;
+let resizeRaf = 0;
+let resizeObserver = null;
+
+const clockCanvas = document.getElementById('clockCanvas');
+const ctx = clockCanvas.getContext('2d');
+const watchFaceCard = document.getElementById('watchFaceCard');
+const wordClockEl = document.getElementById('wordClockEl');
+const digitalPanel = document.getElementById('digitalPanel');
+const supportReadout = document.getElementById('supportReadout');
+const supportTime = document.getElementById('supportTime');
+const supportDate = document.getElementById('supportDate');
+const digitalTime = document.getElementById('digitalTime');
+const digitalDate = document.getElementById('digitalDate');
+const digitalZone = document.getElementById('digitalZone');
+const timezoneValue = document.getElementById('timezoneValue');
+const refreshValue = document.getElementById('refreshValue');
+const pluginValue = document.getElementById('pluginValue');
+const playlistValue = document.getElementById('playlistValue');
+const watchHint = document.getElementById('watchHint');
+const watchFooter = document.getElementById('watchFooter');
+const themeBtn = document.getElementById('themeBtn');
+const secondsBtn = document.getElementById('secondsBtn');
+const faceButtons = Array.from(document.querySelectorAll('[data-face]'));
+
+const formatterOptions = {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hour12: false
+};
+
+function makeFormatter(timeZone) {
+  try {
+    return new Intl.DateTimeFormat('en-GB', { ...formatterOptions, timeZone });
+  } catch (error) {
+    return new Intl.DateTimeFormat('en-GB', formatterOptions);
+  }
+}
+
+const zonedFormatter = makeFormatter(DEVICE_TIMEZONE);
+const resolvedTimeZone = zonedFormatter.resolvedOptions().timeZone || DEVICE_TIMEZONE || 'Local';
+timezoneValue.textContent = resolvedTimeZone;
+digitalZone.textContent = resolvedTimeZone;
+
+function pad(value) {
+  return String(value).padStart(2, '0');
+}
+
+function formatCountdown(totalSeconds) {
+  if (totalSeconds === null || totalSeconds === undefined || Number.isNaN(totalSeconds)) {
+    return '—';
+  }
+  if (totalSeconds <= 0) {
+    return 'Now';
+  }
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) {
+    return `${hours}h ${String(minutes).padStart(2, '0')}m`;
+  }
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+function humanizePlugin(value) {
+  if (!value) {
+    return '—';
+  }
+  return value
+    .replace(/[_-]+/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function getClockParts(now = new Date()) {
+  const parts = {};
+  for (const part of zonedFormatter.formatToParts(now)) {
+    if (part.type !== 'literal') {
+      parts[part.type] = part.value;
+    }
+  }
+
+  return {
+    hour: Number(parts.hour || 0),
+    minute: Number(parts.minute || 0),
+    second: Number(parts.second || 0),
+    weekday: parts.weekday || '',
+    day: Number(parts.day || 0),
+    month: parts.month || '',
+    year: Number(parts.year || 0)
+  };
+}
+
+function resizeCanvas() {
+  const cardBounds = watchFaceCard.getBoundingClientRect();
+  const availableWidth = Math.max(220, cardBounds.width - 56);
+  const availableHeight = Math.max(220, cardBounds.height - 56);
+  canvasSize = Math.max(220, Math.min(460, availableWidth, availableHeight));
+  const roundedSize = Math.round(canvasSize);
+
+  if (clockCanvas.width !== roundedSize || clockCanvas.height !== roundedSize) {
+    clockCanvas.width = roundedSize;
+    clockCanvas.height = roundedSize;
+  }
+}
+
+function drawAnalog(parts) {
+  const width = clockCanvas.width;
+  const height = clockCanvas.height;
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const radius = Math.min(width, height) * 0.44;
+
+  const secondAngle = ((parts.second / 60) * Math.PI * 2) - (Math.PI / 2);
+  const minuteAngle = (((parts.minute + (parts.second / 60)) / 60) * Math.PI * 2) - (Math.PI / 2);
+  const hourAngle = ((((parts.hour % 12) + (parts.minute / 60)) / 12) * Math.PI * 2) - (Math.PI / 2);
+
+  const faceColor = isDark ? '#f2f2f7' : '#1b1a18';
+  const subtle = isDark ? 'rgba(255,255,255,0.10)' : 'rgba(27,26,24,0.08)';
+  const mid = isDark ? 'rgba(255,255,255,0.22)' : 'rgba(27,26,24,0.18)';
+  const centerFill = getComputedStyle(document.documentElement).getPropertyValue('--accent-2').trim() || '#c4683b';
+  const sweep = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#2f6f6a';
+
+  ctx.clearRect(0, 0, width, height);
+
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+  ctx.fillStyle = isDark ? 'rgba(15, 15, 17, 0.66)' : 'rgba(255, 255, 255, 0.72)';
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+  ctx.strokeStyle = subtle;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  for (let marker = 0; marker < 60; marker += 1) {
+    const angle = ((marker / 60) * Math.PI * 2) - (Math.PI / 2);
+    const isHour = marker % 5 === 0;
+    const outer = radius - 4;
+    const inner = isHour ? radius - 22 : radius - 12;
+    ctx.beginPath();
+    ctx.moveTo(centerX + (outer * Math.cos(angle)), centerY + (outer * Math.sin(angle)));
+    ctx.lineTo(centerX + (inner * Math.cos(angle)), centerY + (inner * Math.sin(angle)));
+    ctx.strokeStyle = isHour ? mid : subtle;
+    ctx.lineWidth = isHour ? 3 : 1.25;
+    ctx.stroke();
+  }
+
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, radius - 26, -Math.PI / 2, minuteAngle, minuteAngle < -Math.PI / 2);
+  ctx.strokeStyle = `${sweep}33`;
+  ctx.lineWidth = 10;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  function drawHand(angle, length, widthValue, color, tail = 14) {
+    ctx.beginPath();
+    ctx.moveTo(centerX - (Math.cos(angle) * tail), centerY - (Math.sin(angle) * tail));
+    ctx.lineTo(centerX + (Math.cos(angle) * length), centerY + (Math.sin(angle) * length));
+    ctx.strokeStyle = color;
+    ctx.lineWidth = widthValue;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  }
+
+  drawHand(hourAngle, radius * 0.5, 8, faceColor, 12);
+  drawHand(minuteAngle, radius * 0.76, 5, faceColor, 16);
+  if (showSeconds) {
+    drawHand(secondAngle, radius * 0.84, 2.25, centerFill, 20);
+  }
+
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, 9, 0, Math.PI * 2);
+  ctx.fillStyle = centerFill;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, 3.5, 0, Math.PI * 2);
+  ctx.fillStyle = faceColor;
+  ctx.fill();
+}
+
+function buildWordClock() {
+  if (wordClockEl.childElementCount > 0) {
+    return;
+  }
+
+  WORD_GRID.forEach((row, rowIndex) => {
+    const rowElement = document.createElement('div');
+    rowElement.className = 'word-clock-row';
+
+    row.forEach((letter, colIndex) => {
+      const cell = document.createElement('span');
+      cell.className = 'word-clock-letter';
+      cell.dataset.key = `${rowIndex},${colIndex}`;
+      cell.textContent = letter === '·' ? '' : letter;
+      rowElement.appendChild(cell);
+    });
+
+    wordClockEl.appendChild(rowElement);
+  });
+}
+
+function getWordPositions(hour, minute) {
+  const positions = [[0, 0], [0, 1], [0, 3], [0, 4]];
+  const minuteBucket = minute > 30 ? 60 - minute : minute;
+
+  if (minuteBucket >= 5) {
+    positions.push(...[[2, 7], [2, 8], [2, 9], [2, 10]]);
+  }
+  if (minuteBucket >= 10) {
+    positions.push(...[[3, 5], [3, 6], [3, 7]]);
+  }
+  if (minuteBucket >= 15 && minuteBucket < 20) {
+    positions.push(...[[1, 2], [1, 3], [1, 4], [1, 5], [1, 6], [1, 7], [1, 8]]);
+  }
+  if (minuteBucket >= 20 && minuteBucket < 25) {
+    positions.push(...[[2, 0], [2, 1], [2, 2], [2, 3], [2, 4], [2, 5]]);
+  }
+  if (minuteBucket >= 25 && minuteBucket < 30) {
+    positions.push(...[[2, 0], [2, 1], [2, 2], [2, 3], [2, 4], [2, 5], [2, 7], [2, 8], [2, 9], [2, 10]]);
+  }
+  if (minuteBucket >= 30) {
+    positions.push(...[[3, 0], [3, 1], [3, 2], [3, 3]]);
+  }
+
+  if (minute >= 5 && minute < 35) {
+    positions.push(...[[4, 0], [4, 1], [4, 2], [4, 3]]);
+  } else if (minute >= 35 && minute < 58) {
+    positions.push(...[[3, 12], [3, 13]]);
+  }
+
+  const hourIndex = minute >= 35 ? hour % 12 : (hour + 11) % 12;
+  const hourRows = [
+    [[5, 0], [5, 1], [5, 2]],
+    [[6, 10], [6, 11], [6, 12]],
+    [[5, 8], [5, 9], [5, 10], [5, 11], [5, 12]],
+    [[6, 0], [6, 1], [6, 2], [6, 3]],
+    [[6, 5], [6, 6], [6, 7], [6, 8]],
+    [[5, 4], [5, 5], [5, 6]],
+    [[8, 0], [8, 1], [8, 2], [8, 3], [8, 4]],
+    [[7, 0], [7, 1], [7, 2], [7, 3], [7, 4]],
+    [[4, 8], [4, 9], [4, 10], [4, 11]],
+    [[9, 0], [9, 1], [9, 2]],
+    [[7, 6], [7, 7], [7, 8], [7, 9], [7, 10], [7, 11]],
+    [[8, 6], [8, 7], [8, 8], [8, 9], [8, 10], [8, 11], [8, 12]]
+  ];
+
+  positions.push(...(hourRows[hourIndex] || []));
+
+  if (minute < 3 || minute > 57) {
+    positions.push(...[[9, 7], [9, 8], [9, 9], [9, 10], [9, 11], [9, 12]]);
+  }
+
+  return positions;
+}
+
+function drawWordClock(parts) {
+  buildWordClock();
+  const litSet = new Set(getWordPositions(parts.hour, parts.minute).map(([row, col]) => `${row},${col}`));
+  wordClockEl.querySelectorAll('.word-clock-letter').forEach((letter) => {
+    letter.classList.toggle('lit', litSet.has(letter.dataset.key));
+  });
+}
+
+function updateReadout(parts) {
+  const timeText = showSeconds
+    ? `${pad(parts.hour)}:${pad(parts.minute)}:${pad(parts.second)}`
+    : `${pad(parts.hour)}:${pad(parts.minute)}`;
+  const dateText = `${parts.weekday}, ${parts.day} ${parts.month} ${parts.year}`;
+
+  supportTime.textContent = timeText;
+  supportDate.textContent = dateText;
+  digitalTime.textContent = timeText;
+  digitalDate.textContent = dateText;
+}
+
+function applyFaceVisibility() {
+  faceButtons.forEach((button) => {
+    button.classList.toggle('is-active', button.dataset.face === face);
+    button.setAttribute('aria-pressed', String(button.dataset.face === face));
+  });
+
+  const isDigitalFace = face === 'digital';
+  const isWordFace = face === 'word';
+
+  watchFaceCard.classList.toggle('is-digital', isDigitalFace || isWordFace);
+  watchFaceCard.classList.toggle('is-word', isWordFace);
+  watchFaceCard.classList.toggle('face-analog', face === 'analog');
+  watchFaceCard.classList.toggle('face-digital', isDigitalFace);
+  watchFaceCard.classList.toggle('face-word', isWordFace);
+
+  clockCanvas.hidden = isDigitalFace || isWordFace;
+  clockCanvas.setAttribute('aria-hidden', String(isDigitalFace || isWordFace));
+  wordClockEl.setAttribute('aria-hidden', String(!isWordFace));
+  digitalPanel.hidden = !isDigitalFace;
+  digitalPanel.setAttribute('aria-hidden', String(!isDigitalFace));
+  if (supportReadout) {
+    supportReadout.hidden = isDigitalFace || isWordFace;
+  }
+  watchHint.textContent = FACE_DESCRIPTIONS[face];
+}
+
+function updateControlLabels() {
+  themeBtn.textContent = isDark ? 'Light Theme' : 'Dark Theme';
+  themeBtn.classList.toggle('is-active', isDark);
+  themeBtn.setAttribute('aria-pressed', String(isDark));
+
+  secondsBtn.textContent = showSeconds ? 'Seconds On' : 'Seconds Off';
+  secondsBtn.classList.toggle('is-active', showSeconds);
+  secondsBtn.setAttribute('aria-pressed', String(showSeconds));
+}
+
+function renderWatch() {
+  const parts = getClockParts();
+  updateReadout(parts);
+
+  if (face === 'analog') {
+    drawAnalog(parts);
+  } else if (face === 'word') {
+    drawWordClock(parts);
+  }
+
+  const now = new Date();
+  const delay = showSeconds
+    ? (1000 - (Date.now() % 1000)) + 18
+    : (((60 - now.getSeconds()) * 1000) - now.getMilliseconds()) + 18;
+  tickTimer = window.setTimeout(renderWatch, delay);
+}
+
+function restartWatch() {
+  if (tickTimer) {
+    window.clearTimeout(tickTimer);
+    tickTimer = null;
+  }
+  resizeCanvas();
+  applyFaceVisibility();
+  updateControlLabels();
+  renderWatch();
+}
+
+function scheduleRestart() {
+  if (resizeRaf) {
+    window.cancelAnimationFrame(resizeRaf);
+  }
+  resizeRaf = window.requestAnimationFrame(() => {
+    resizeRaf = 0;
+    restartWatch();
+  });
+}
+
+async function fetchStatus() {
+  try {
+    const response = await fetch(STATUS_URL, { cache: 'no-store' });
+    if (!response.ok) {
+      return;
+    }
+
+    const data = await response.json();
+    refreshValue.textContent = formatCountdown(data.seconds_until_refresh);
+    pluginValue.textContent = humanizePlugin(data.current_plugin_instance || data.current_plugin_id);
+    playlistValue.textContent = data.active_playlist || 'No active playlist';
+    watchFooter.textContent = data.last_refresh_time
+      ? `Last display refresh: ${new Date(data.last_refresh_time).toLocaleString()}`
+      : 'The display has not refreshed yet.';
+  } catch (error) {
+    watchFooter.textContent = 'Status sync is temporarily unavailable.';
+  }
+}
+
+themeBtn.addEventListener('click', () => {
+  isDark = !isDark;
+  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  safeStorageSet(STORAGE_KEYS.theme, isDark ? 'dark' : 'light');
+  safeStorageSet('e-inkpi-theme', isDark ? 'dark' : 'light');
+  restartWatch();
+});
+
+secondsBtn.addEventListener('click', () => {
+  showSeconds = !showSeconds;
+  safeStorageSet(STORAGE_KEYS.seconds, String(showSeconds));
+  restartWatch();
+});
+
+faceButtons.forEach((button) => {
+  button.addEventListener('click', () => {
+    face = button.dataset.face;
+    safeStorageSet(STORAGE_KEYS.face, face);
+    restartWatch();
+  });
+});
+
+window.addEventListener('resize', scheduleRestart);
+
+if ('ResizeObserver' in window) {
+  resizeObserver = new ResizeObserver(scheduleRestart);
+  resizeObserver.observe(watchFaceCard);
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    if (tickTimer) {
+      window.clearTimeout(tickTimer);
+      tickTimer = null;
+    }
+    return;
+  }
+  fetchStatus();
+  restartWatch();
+});
+
+window.addEventListener('beforeunload', () => {
+  if (tickTimer) {
+    window.clearTimeout(tickTimer);
+  }
+  if (statusTimer) {
+    window.clearInterval(statusTimer);
+  }
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+  }
+});
+
+buildWordClock();
+updateControlLabels();
+applyFaceVisibility();
+resizeCanvas();
+fetchStatus();
+statusTimer = window.setInterval(fetchStatus, 30000);
+renderWatch();
+</script>
+</body>
+</html>

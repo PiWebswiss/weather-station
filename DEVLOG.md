@@ -6,8 +6,8 @@ Historique des décisions de développement, bugs corrigés et raisonnements tec
 
 ## Session 1 — Architecture & Setup
 
-### Pourquoi InkyPi ?
-Choix d'InkyPi comme base (https://github.com/fatihak/InkyPi) plutôt qu'un script from scratch :
+### Pourquoi E-InkPi ?
+Choix d'E-InkPi comme base (https://github.com/fatihak/E-InkPi) plutôt qu'un script from scratch :
 - Architecture Flask propre avec système de plugins
 - Support natif Inky et Waveshare
 - Système de playlists et refresh configurable
@@ -250,3 +250,85 @@ src/
 | Polling 1 s avec If-Modified-Since | Aperçu réactif sans surcharger le Pi |
 | Countdown côté JS + resync 30 s | Décompte fluide sans polling serveur excessif |
 | HTML5 Drag API (natif) | Pas de librairie externe pour le réordonnage des plugins |
+
+---
+
+## Session 9 — Watch interactif + météo polish + workflow boutons
+
+### Objectif
+Transformer le dashboard d'un simple aperçu PNG en une interface plus vivante, tout en améliorant la qualité perçue du plugin météo et la boucle "configurer → sauvegarder → afficher".
+
+### Changements principaux
+
+#### 1. Nouveau mode watch interactif
+- Ajout d'une route Flask `/live`
+- Création de `src/templates/live.html`
+- Le dashboard `src/templates/inky.html` propose maintenant deux modes :
+  - **Display Image** : l'aperçu e-ink historique
+  - **Interactive Watch** : une vraie montre côté navigateur
+- Le watch mémorise :
+  - le thème
+  - l'affichage des secondes
+  - la face (`analog`, `digital`, `word`)
+- Chargement lazy de l'iframe pour éviter un coût de rendu inutile si l'utilisateur reste sur l'image
+
+#### 2. Plugin météo : MeteoSwiss par défaut + rendu plus pro
+- Correction d'un décalage subtil : l'UI affichait MeteoSwiss en premier, mais la valeur JS par défaut restait `OpenMeteo`
+- `WeatherPlugin` utilise maintenant **MeteoSwiss** par défaut pour les nouvelles instances
+- Refonte du rendu `src/plugins/weather/render/weather.html` :
+  - hero section température + icône
+  - métriques sous forme de cartes
+  - badge source
+  - forecast plus compact et plus lisible
+- Le rendu respecte maintenant réellement la timezone choisie (`locationTimeZone` ou `localTimeZone`)
+- Le réglage `moonPhase` est enfin exploité dans le template
+- OpenWeatherMap est laissé en **coming soon** pour éviter de guider vers un provider non supporté ici
+
+#### 3. Workflow plugin / boutons
+- Ajout d'un bouton **Update Display** sur `src/templates/plugin.html`
+- Ajout des liens **Buttons** dans la navigation principale
+- Correction de `button_settings.html` :
+  - appel à `showResponseModal()` avec les paramètres dans le bon ordre
+- Correction de `button_handler.py` :
+  - l'action physique `refresh` rafraîchit désormais **le plugin actuellement affiché**
+  - auparavant elle avançait silencieusement au plugin suivant
+
+### Vérifications
+- `git diff --check` : OK
+- Compilation Python ciblée des fichiers modifiés vers `/tmp` : OK
+- Smoke test de rendu Jinja du template météo : OK
+- Rendu réel du plugin météo en venv projet : image `800x480` générée avec succès après la refonte de layout
+
+### Limite connue
+- Un test d'import exhaustif de tous les plugins n'a pas pu être finalisé dans le shell brut de cette session, car l'interpréteur Python disponible n'embarquait pas toutes les dépendances du projet (`psutil`, `pytz`, etc.).
+
+### Ajustement final météo
+- Refonte du template météo pour se rapprocher visuellement de la maquette fournie :
+  - titre centré
+  - grand bloc température
+  - métriques en deux colonnes
+  - bande de tendance plus douce
+  - cartes forecast plus fines
+- La palette, les marges et les formes ont été repolies pour un rendu plus propre côté écran et côté aperçu web
+- Ajout d'un fallback MeteoSwiss -> Open-Meteo pour garder un écran complet même si l'API MeteoSwiss renvoie une structure partielle
+
+### Stabilisation de l'interface watch interactive
+- Correction d'un ensemble de bugs UX sur `live.html` :
+  - iframe embed simplifiée
+  - resize / repaint plus robustes
+  - duplication de lecture masquée en mode digital
+  - word clock réaligné
+  - timers nettoyés quand l'onglet se masque ou se ferme
+- Correction du dashboard :
+  - suppression du polling preview redondant
+  - nettoyage des anciens `blob:` URLs pour éviter les fuites mémoire à force de refresh
+
+### Composer visuel pour le plugin météo
+- Le plugin météo dispose maintenant d'un vrai **Display Composer** dans `settings.html`
+- L'utilisateur peut :
+  - ajouter un bloc texte
+  - ajouter un bloc image
+  - sélectionner / déplacer un bloc sur un canvas
+  - modifier son contenu, sa taille, sa position, ses couleurs, son style et son opacité
+- Les images uploadées sont stockées comme fichiers sauvegardés du projet, puis reliées au bloc concerné via une clé stable
+- Le rendu `weather.html` affiche réellement ces blocs personnalisés sur l'écran météo généré
