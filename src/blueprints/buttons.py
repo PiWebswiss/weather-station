@@ -33,7 +33,7 @@ def update_button_settings():
         action = request.form.get(f"button_{btn}", "nothing")
         if action not in AVAILABLE_ACTIONS:
             action = "nothing"
-        device_config.set_config(f"button_{btn}", action)
+        device_config.update_value(f"button_{btn}", action)
 
     device_config.write_config()
 

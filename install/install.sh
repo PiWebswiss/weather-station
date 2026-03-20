@@ -278,6 +278,22 @@ update_config() {
   fi
 }
 
+setup_firewall() {
+  echo "Setting up firewall (ufw)..."
+  if ! command -v ufw &>/dev/null; then
+    apt-get install -y ufw > /dev/null &
+    show_loader "\tInstalling ufw..."
+  fi
+  ufw --force reset > /dev/null 2>&1
+  ufw default deny incoming  > /dev/null 2>&1
+  ufw default allow outgoing > /dev/null 2>&1
+  ufw allow 22/tcp  comment 'SSH'   > /dev/null 2>&1
+  ufw allow 80/tcp  comment 'HTTP'  > /dev/null 2>&1
+  ufw allow 443/tcp comment 'HTTPS' > /dev/null 2>&1
+  ufw --force enable > /dev/null 2>&1
+  echo_success "\tFirewall active — SSH(22), HTTP(80), HTTPS(443) open, all else blocked."
+}
+
 stop_service() {
     echo "Checking if $SERVICE_FILE is running"
     if /usr/bin/systemctl is-active --quiet $SERVICE_FILE
@@ -386,5 +402,7 @@ install_app_service
 
 echo "Update JS and CSS files"
 bash $SCRIPT_DIR/update_vendors.sh > /dev/null
+
+setup_firewall
 
 ask_for_reboot

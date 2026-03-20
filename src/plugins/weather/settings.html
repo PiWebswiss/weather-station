@@ -108,47 +108,76 @@
 /* ── Layout Designer ────────────────────────────────────────────── */
 .zone-block {
     background: var(--card, #fff);
-    border: 1px solid var(--border, rgba(0,0,0,.12));
-    border-radius: 10px;
+    border: 1px solid var(--border, rgba(0,0,0,.10));
+    border-left: 3px solid var(--zone-accent, var(--accent, #2f6f6a));
+    border-radius: 12px;
     margin-bottom: 8px;
-    padding: 10px 12px;
+    padding: 11px 14px;
     cursor: grab;
     user-select: none;
-    transition: box-shadow 0.15s, transform 0.1s;
+    transition: box-shadow 0.15s, transform 0.1s, border-color 0.15s;
 }
 .zone-block:last-child { margin-bottom: 0; }
 .zone-block.dragging {
-    opacity: 0.5;
-    box-shadow: 0 8px 20px rgba(0,0,0,.2);
+    opacity: 0.55;
+    box-shadow: 0 10px 28px rgba(0,0,0,.18);
     cursor: grabbing;
+    transform: scale(1.02);
 }
 .zone-block.drag-over {
     border-color: var(--accent, #2f6f6a);
-    background: var(--accent-soft, rgba(47,111,106,.08));
+    box-shadow: 0 0 0 2px var(--focus, rgba(47,111,106,.2));
 }
 .zone-info {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
+    gap: 10px;
+    margin-bottom: 9px;
 }
 .zone-drag-handle {
-    color: var(--muted, #888);
-    font-size: 18px;
+    color: var(--muted, #aaa);
+    font-size: 15px;
     cursor: grab;
     line-height: 1;
+    opacity: 0.6;
+}
+.zone-icon-badge {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    background: var(--accent-soft, rgba(47,111,106,.12));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0;
 }
 .zone-name {
     flex: 1;
     font-weight: 600;
-    font-size: .9rem;
+    font-size: .88rem;
+    color: var(--ink);
 }
-.zone-toggle input[type=checkbox] {
-    accent-color: var(--accent, #2f6f6a);
-    width: 16px;
-    height: 16px;
-    cursor: pointer;
+/* CSS toggle switch */
+.zone-toggle { position: relative; display: inline-flex; align-items: center; cursor: pointer; }
+.zone-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+.zone-toggle-track {
+    width: 36px; height: 20px;
+    background: var(--border-color, #ccc);
+    border-radius: 20px;
+    position: relative;
+    transition: background .2s;
 }
+.zone-toggle input:checked + .zone-toggle-track { background: var(--accent, #2f6f6a); }
+.zone-toggle-track::after {
+    content: '';
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 14px; height: 14px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform .2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,.2);
+}
+.zone-toggle input:checked + .zone-toggle-track::after { transform: translateX(16px); }
+
+/* pill control buttons */
 .zone-controls {
     display: flex;
     gap: 8px;
@@ -157,45 +186,71 @@
 }
 .zone-control-group {
     display: flex;
-    gap: 2px;
+    gap: 0;
+    border: 1px solid var(--border, rgba(0,0,0,.12));
+    border-radius: 8px;
+    overflow: hidden;
 }
 .zone-size-btn, .zone-style-btn {
-    padding: 3px 8px;
-    border: 1px solid var(--border, rgba(0,0,0,.15));
-    border-radius: 6px;
+    padding: 4px 10px;
+    border: none;
+    border-right: 1px solid var(--border, rgba(0,0,0,.10));
     background: transparent;
     color: var(--muted, #888);
     font-size: .78rem;
+    font-family: inherit;
     cursor: pointer;
     transition: all .15s;
-    line-height: 1.4;
+    line-height: 1.5;
 }
-.zone-size-btn:hover, .zone-style-btn:hover {
-    border-color: var(--accent, #2f6f6a);
-    color: var(--accent, #2f6f6a);
-}
+.zone-size-btn:last-child, .zone-style-btn:last-child { border-right: none; }
+.zone-size-btn:hover, .zone-style-btn:hover { background: var(--accent-soft, rgba(47,111,106,.1)); color: var(--accent); }
 .zone-size-btn.active, .zone-style-btn.active {
     background: var(--accent, #2f6f6a);
     color: #fff;
-    border-color: var(--accent, #2f6f6a);
 }
 .zone-border-label {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 5px;
     font-size: .78rem;
     color: var(--muted, #888);
     cursor: pointer;
+    padding: 4px 8px;
+    border: 1px solid var(--border, rgba(0,0,0,.12));
+    border-radius: 8px;
+    transition: background .15s;
 }
-.zone-border-label input[type=checkbox] {
-    accent-color: var(--accent, #2f6f6a);
-    cursor: pointer;
+.zone-border-label:hover { background: var(--accent-soft); color: var(--accent); }
+.zone-border-label input[type=checkbox] { accent-color: var(--accent, #2f6f6a); cursor: pointer; }
+.zone-block.zone-disabled { opacity: 0.4; }
+.zone-block.zone-disabled .zone-controls { pointer-events: none; }
+
+/* e-ink preview */
+#einkPreview {
+    background: #f4f1ec;
+    border-radius: 10px;
+    border: 6px solid #222;
+    box-shadow: 0 4px 18px rgba(0,0,0,.25), inset 0 0 0 1px rgba(0,0,0,.08);
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    overflow: hidden;
 }
-.zone-block.zone-disabled {
-    opacity: 0.45;
-}
-.zone-block.zone-disabled .zone-controls {
-    pointer-events: none;
+.eink-zone-block {
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    font-size: 9px;
+    font-weight: 600;
+    color: rgba(255,255,255,.85);
+    flex-shrink: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: height .2s, border-radius .15s;
+    letter-spacing: .03em;
 }
 </style>
 
@@ -233,9 +288,9 @@
     <div class="wx-row">
         <label for="weatherProvider" class="form-label">Provider</label>
         <select id="weatherProvider" name="weatherProvider" class="form-input" onchange="updateTitleOptions(this.value)">
-            <option value="OpenMeteo">Open-Meteo (free, no key)</option>
+            <option value="MeteoSwiss">MeteoSwiss (Switzerland only, no key)</option>
+            <option value="OpenMeteo">Open-Meteo (free, global, no key)</option>
             <option value="OpenWeatherMap">OpenWeatherMap (API key required)</option>
-            <option value="MeteoSwiss">MeteoSwiss (free, Switzerland only)</option>
         </select>
     </div>
     <div class="wx-row">
@@ -408,16 +463,13 @@
         const tzRow = document.getElementById('tzRow');
         const apiKeyLabel = document.querySelector('.api-key-label');
 
-        if (provider === 'OpenMeteo') {
+        if (provider === 'OpenMeteo' || provider === 'MeteoSwiss') {
             titleLocationRadio.disabled = true;
             titleCustomRadio.checked = true;
             if (tzRow) tzRow.style.display = 'none';
             if (apiKeyLabel) apiKeyLabel.style.display = 'none';
-        } else if (provider === 'MeteoSwiss') {
-            titleLocationRadio.disabled = false;
-            if (tzRow) tzRow.style.display = '';
-            if (apiKeyLabel) apiKeyLabel.style.display = 'none';
         } else {
+            // OpenWeatherMap
             titleLocationRadio.disabled = false;
             if (tzRow) tzRow.style.display = '';
             if (apiKeyLabel) apiKeyLabel.style.display = '';
@@ -574,7 +626,7 @@
             document.getElementById('partialZone').value = pluginSettings.partialZone || 'all';
             document.getElementById('graphIconStep').value = pluginSettings.graphIconStep || '2';
             selectedTitle = pluginSettings.titleSelection || 'location';
-            weatherProvider = pluginSettings.weatherProvider || 'OpenMeteo';
+            weatherProvider = pluginSettings.weatherProvider || 'MeteoSwiss';
             document.getElementById('customTitle').value = pluginSettings.customTitle || '';
         } else {
             // Defaults
@@ -635,18 +687,28 @@
         { id: 'forecast',    label: 'Forecast',          icon: '📅' }
     ];
 
+    // Colors for the left-border accent of each zone row
+    const ZONE_ACCENTS = {
+        header:      '#3b82f6',
+        temperature: '#f59e0b',
+        metrics:     '#10b981',
+        graph:       '#8b5cf6',
+        forecast:    '#06b6d4',
+    };
+
+    // Colors for the e-ink preview blocks (dark content on light paper)
     const ZONE_COLORS = {
-        header:      '#2a3a2a',
-        temperature: '#1a2a3a',
-        metrics:     '#2a2a1a',
-        graph:       '#2a1a2a',
-        forecast:    '#1a2a2a'
+        header:      '#1e293b',
+        temperature: '#1e3a5f',
+        metrics:     '#14532d',
+        graph:       '#3b1f5e',
+        forecast:    '#1c3c4a',
     };
 
     const ZONE_HEIGHTS = {
-        compact: '14px',
-        normal:  '28px',
-        large:   '48px'
+        compact: '18px',
+        normal:  '34px',
+        large:   '56px',
     };
 
     // Internal state — array of zone objects
@@ -670,25 +732,27 @@
         block.className = 'zone-block' + (zone.enabled ? '' : ' zone-disabled');
         block.setAttribute('data-zone', zone.id);
         block.draggable = true;
+        block.style.setProperty('--zone-accent', ZONE_ACCENTS[zone.id] || 'var(--accent)');
 
         block.innerHTML = `
             <div class="zone-info">
                 <span class="zone-drag-handle">⠿</span>
-                <span class="zone-icon" style="font-size:1rem;">${zone.icon}</span>
+                <div class="zone-icon-badge">${zone.icon}</div>
                 <span class="zone-name">${zone.label}</span>
                 <label class="zone-toggle" title="Enable/disable zone">
                     <input type="checkbox" class="zone-enabled" ${zone.enabled ? 'checked' : ''}>
+                    <span class="zone-toggle-track"></span>
                 </label>
             </div>
             <div class="zone-controls">
-                <div class="zone-control-group" title="Zone size">
+                <div class="zone-control-group" title="Size">
                     <button type="button" class="zone-size-btn ${zone.size === 'compact' ? 'active' : ''}" data-size="compact">S</button>
                     <button type="button" class="zone-size-btn ${zone.size === 'normal'  ? 'active' : ''}" data-size="normal">M</button>
                     <button type="button" class="zone-size-btn ${zone.size === 'large'   ? 'active' : ''}" data-size="large">L</button>
                 </div>
                 <div class="zone-control-group" title="Corner style">
-                    <button type="button" class="zone-style-btn ${zone.style === 'rounded' ? 'active' : ''}" data-style="rounded">◉ Round</button>
-                    <button type="button" class="zone-style-btn ${zone.style === 'square'  ? 'active' : ''}" data-style="square">▪ Square</button>
+                    <button type="button" class="zone-style-btn ${zone.style === 'rounded' ? 'active' : ''}" data-style="rounded">Rounded</button>
+                    <button type="button" class="zone-style-btn ${zone.style === 'square'  ? 'active' : ''}" data-style="square">Square</button>
                 </div>
                 <label class="zone-border-label" title="Draw border around zone">
                     <input type="checkbox" class="zone-border" ${zone.border ? 'checked' : ''}> Border
@@ -795,22 +859,13 @@
     // ── Create preview block for the e-ink preview panel ────────────────
     function createPreviewBlock(zone) {
         const div = document.createElement('div');
-        div.style.cssText = [
-            'background:' + (ZONE_COLORS[zone.id] || '#333'),
-            'border-radius:' + (zone.style === 'rounded' ? '6px' : '2px'),
-            'border:' + (zone.border ? '1px solid #555' : 'none'),
-            'height:' + (ZONE_HEIGHTS[zone.size] || '28px'),
-            'display:' + (zone.enabled ? 'flex' : 'none'),
-            'align-items:center',
-            'padding:0 8px',
-            'font-size:9px',
-            'color:rgba(255,255,255,0.6)',
-            'flex-shrink:0',
-            'transition:all .2s',
-            'overflow:hidden',
-            'white-space:nowrap'
-        ].join(';');
-        div.textContent = zone.icon + ' ' + zone.label;
+        div.className = 'eink-zone-block';
+        div.style.background    = ZONE_COLORS[zone.id] || '#1e293b';
+        div.style.borderRadius  = zone.style === 'rounded' ? '5px' : '2px';
+        div.style.border        = zone.border ? '1px solid rgba(255,255,255,.18)' : 'none';
+        div.style.height        = ZONE_HEIGHTS[zone.size] || '34px';
+        div.style.display       = zone.enabled ? 'flex' : 'none';
+        div.textContent         = zone.icon + '  ' + zone.label;
         return div;
     }
 

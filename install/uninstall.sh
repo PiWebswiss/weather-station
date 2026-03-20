@@ -104,11 +104,24 @@ confirm_uninstall() {
   fi
 }
 
+remove_firewall() {
+  echo "Removing firewall rules..."
+  if command -v ufw &>/dev/null; then
+    ufw --force reset > /dev/null 2>&1
+    ufw --force disable > /dev/null 2>&1
+    echo_success "\tFirewall rules removed and ufw disabled."
+  else
+    echo_success "\tufw not installed, nothing to remove."
+  fi
+}
+
 check_permissions
 confirm_uninstall
 stop_service
 disable_service
 remove_files
+remove_firewall
 
+echo ""
 echo_success "Uninstallation complete."
-echo_header "All components of $APPNAME have been removed."
+echo_header "All components of $APPNAME have been removed from this system."

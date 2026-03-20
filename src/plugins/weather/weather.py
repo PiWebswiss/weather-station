@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 import os
 import datetime
+from plugins.base_plugin.base_plugin import BasePlugin
 
 
 # ---------------------------------------------------------------------------
@@ -107,6 +108,192 @@ def _wmo_icon_path(code: int) -> str | None:
     if os.path.exists(os.path.join(icon_dir, "cloudy.svg")):
         return "/static/plugins/weather/icons/cloudy.svg"
     return None
+
+
+# ---------------------------------------------------------------------------
+# MeteoSwiss icon codes → description
+# ---------------------------------------------------------------------------
+
+_MSW_DESCRIPTIONS = {
+    1:  "Sunny", 2:  "Slightly cloudy", 3:  "Partly cloudy",
+    4:  "Very cloudy", 5:  "Overcast", 6:  "Foggy",
+    7:  "Light drizzle", 8:  "Drizzle", 9:  "Light rain",
+    10: "Rain", 11: "Heavy rain", 12: "Snow flurries",
+    13: "Sleet", 14: "Light snow", 15: "Snowfall", 16: "Heavy snow",
+    17: "Thunderstorm", 18: "Thunderstorm", 19: "Thunderstorm with hail",
+    20: "Low stratus", 21: "Fog", 22: "Light rain", 23: "Rain",
+    24: "Snow", 25: "Thunderstorm", 26: "Stratus and fog",
+    27: "Stratus with mist", 28: "Light showers", 29: "Showers",
+    30: "Heavy showers", 31: "Snow showers", 32: "Hail thunderstorm",
+    33: "Heavy thunderstorm", 34: "Storm", 35: "Windy",
+}
+
+def _msw_desc(code: int) -> str:
+    """Description for a MeteoSwiss symbol code (day 1-35, night 101-135)."""
+    base = code if code < 100 else code - 100
+    return _MSW_DESCRIPTIONS.get(base, "Variable")
+
+def _msw_icon_path(code: int) -> str:
+    """Return the web path for a MeteoSwiss symbol icon (msw_N.svg)."""
+    icon_dir = os.path.join(os.path.dirname(__file__), "icons")
+    for candidate in [code, code - 100 if code > 100 else None]:
+        if candidate and candidate > 0:
+            fname = f"msw_{candidate}.svg"
+            if os.path.exists(os.path.join(icon_dir, fname)):
+                return f"/static/plugins/weather/icons/{fname}"
+    return "/static/plugins/weather/icons/cloudy.svg"
+
+# Cache: {plz: (unix_ts, data)}
+_MSW_CACHE: dict = {}
+_MSW_CACHE_TTL = 1800  # 30 minutes
+
+
+def _find_valid_msw_plz(base_plz4: int) -> str | None:
+    """Scan nearby Swiss PLZ codes to find one that MeteoSwiss supports."""
+    import urllib.request
+    for delta in [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 8, -8, 10, -10]:
+        plz4 = base_plz4 + delta
+        if plz4 < 1000 or plz4 > 9999:
+            continue
+        plz6 = f"{plz4}00"
+        url  = f"https://app-prod-ws.meteoswiss-app.ch/v1/plzDetail?plz={plz6}"
+        req  = urllib.request.Request(url, headers={"User-Agent": "InkyPi/1.0"})
+        try:
+            with urllib.request.urlopen(req, timeout=5) as r:
+                d = json.loads(r.read())
+            if d.get("currentWeather", {}).get("temperature") is not None:
+                return plz6
+        except Exception:
+            continue
+    return None
+
+
+def _fetch_meteoswiss(lat: float, lon: float) -> dict:
+    """Fetch MeteoSwiss forecast via the official app API, cached 30 min."""
+    import urllib.request, time
+
+    # 1. Reverse-geocode to Swiss PLZ (zoom=16 required for postcode)
+    geo_url = (f"https://nominatim.openstreetmap.org/reverse"
+               f"?format=json&lat={lat:.6f}&lon={lon:.6f}&zoom=16&addressdetails=1")
+    req = urllib.request.Request(geo_url, headers={"User-Agent": "InkyPi/1.0"})
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        geo = json.loads(resp.read())
+    addr    = geo.get("address", {})
+    country = addr.get("country_code", "").lower()
+    if country != "ch":
+        raise RuntimeError(
+            "MeteoSwiss only covers Switzerland. "
+            "Your location appears to be outside Switzerland — "
+            "please switch to Open-Meteo in the settings."
+        )
+    postcode = addr.get("postcode", "")
+    digits   = "".join(ch for ch in postcode if ch.isdigit())[:4]
+    if len(digits) != 4:
+        raise RuntimeError("Could not determine Swiss postal code for your location.")
+
+    base_plz4 = int(digits)
+
+    # 2. Cache check
+    cache_key = str(base_plz4)
+    cached    = _MSW_CACHE.get(cache_key)
+    if cached and (time.time() - cached[0]) < _MSW_CACHE_TTL:
+        return cached[1]
+
+    # 3. Find nearest valid PLZ (MeteoSwiss only supports specific PLZ codes)
+    plz6 = _find_valid_msw_plz(base_plz4)
+    if not plz6:
+        raise RuntimeError(
+            f"No MeteoSwiss forecast found near postal code {base_plz4}. "
+            "Try selecting a different location or switch to Open-Meteo."
+        )
+
+    # 4. Fetch full forecast data
+    url = f"https://app-prod-ws.meteoswiss-app.ch/v1/plzDetail?plz={plz6}"
+    req = urllib.request.Request(url, headers={"User-Agent": "InkyPi/1.0"})
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        data = json.loads(resp.read())
+    _MSW_CACHE[cache_key] = (time.time(), data)
+    return data
+
+
+def _parse_meteoswiss(data: dict, plugin_settings: dict) -> dict:
+    """Parse MeteoSwiss API response into the shared template context dict."""
+    cur          = data.get("currentWeather", {})
+    forecast_raw = data.get("forecast", [])
+    graph        = data.get("graph", {})
+
+    temp      = cur.get("temperature", "—")
+    icon_code = cur.get("icon", 1)
+
+    def _ts_hhmm(ts_ms):
+        if not ts_ms:
+            return "—"
+        return datetime.datetime.fromtimestamp(ts_ms / 1000).strftime("%H:%M")
+
+    sunrises = graph.get("sunrise", [])
+    sunsets  = graph.get("sunset",  [])
+    sunrise  = _ts_hhmm(sunrises[0]) if sunrises else "—"
+    sunset   = _ts_hhmm(sunsets[0])  if sunsets  else "—"
+
+    # Hourly temperature graph (next 24 h)
+    h_temps       = graph.get("temperatureMean1h", [])
+    graph_start   = graph.get("start", 0)
+    hourly_list   = []
+    for i, t in enumerate(h_temps[:24]):
+        ts = graph_start + i * 3600 * 1000
+        hourly_list.append({
+            "time": datetime.datetime.fromtimestamp(ts / 1000).strftime("%H:%M"),
+            "temp": t,
+        })
+
+    # Wind: mean of first 8 three-hourly values (24 h)
+    winds = graph.get("windSpeed3h", [])
+    wind  = round(sum(winds[:8]) / len(winds[:8])) if winds else "—"
+
+    # Daily forecast
+    n_days       = int(plugin_settings.get("forecastDays", 7))
+    forecast_days = []
+    for day in forecast_raw[:n_days]:
+        try:
+            day_name = datetime.date.fromisoformat(day["dayDate"]).strftime("%a")
+        except Exception:
+            day_name = "—"
+        d_icon = day.get("iconDay", 1)
+        forecast_days.append({
+            "day":         day_name,
+            "description": _msw_desc(d_icon),
+            "temp_max":    day.get("temperatureMax", "—"),
+            "temp_min":    day.get("temperatureMin", "—"),
+            "icon_path":   _msw_icon_path(d_icon),
+            "precip":      day.get("precipitation", 0),
+        })
+
+    now = datetime.datetime.now()
+    moon_icon, moon_name = _moon_phase(now.date())
+    rain_now = (graph.get("precipitation1h") or [0])[0]
+
+    return {
+        "temperature":         round(temp) if isinstance(temp, (int, float)) else temp,
+        "feels_like":          "—",
+        "weather_description": _msw_desc(icon_code),
+        "weather_icon_path":   _msw_icon_path(icon_code),
+        "humidity":            "—",
+        "wind_speed":          wind,
+        "pressure":            "—",
+        "rain":                rain_now,
+        "uvi":                 "—",
+        "sunrise":             sunrise,
+        "sunset":              sunset,
+        "moon_phase_icon":     moon_icon,
+        "moon_phase":          moon_name,
+        "hourly_graph_svg":    _build_hourly_svg(hourly_list),
+        "forecast_days":       forecast_days,
+        "current_date":        now.strftime("%a, %d %b %Y"),
+        "current_time":        now.strftime("%H:%M"),
+        "refresh_time":        now.strftime("%H:%M"),
+        "wmo_code":            None,
+        "msw_icon_code":       icon_code,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -225,7 +412,7 @@ def _parse_open_meteo(data: dict, plugin_settings: dict) -> dict:
 # Main plugin class
 # ---------------------------------------------------------------------------
 
-class WeatherPlugin:
+class WeatherPlugin(BasePlugin):
     """InkyPi weather plugin — returns a PIL Image ready to display on e-ink."""
 
     PLUGIN_NAME = "weather"
@@ -255,14 +442,14 @@ class WeatherPlugin:
         provider = plugin_settings.get("weatherProvider", "OpenMeteo")
         units    = plugin_settings.get("units", "metric")
 
-        if provider == "OpenMeteo":
+        if provider == "MeteoSwiss":
+            raw = _fetch_meteoswiss(lat, lon)
+            ctx = _parse_meteoswiss(raw, plugin_settings)
+        elif provider == "OpenMeteo":
             raw = _fetch_open_meteo(lat, lon, units)
             ctx = _parse_open_meteo(raw, plugin_settings)
         else:
-            raise RuntimeError(
-                f"Provider '{provider}' is not yet implemented. "
-                "Please select Open-Meteo in the settings."
-            )
+            raise RuntimeError(f"Unknown provider: '{provider}'.")
 
         # Title and city
         title_sel = plugin_settings.get("titleSelection", "custom")

@@ -80,6 +80,7 @@
             transition: opacity 0.4s;
         }
         .update-toast.visible { opacity: 1; }
+        .update-toast.error { color: #e05; }
     </style>
 </head>
 <body class="wp-admin">
@@ -266,6 +267,8 @@
                 const data = await r.json();
                 if (r.ok) {
                     statusEl.textContent = 'Updated ' + new Date().toLocaleTimeString();
+                    toastEl.classList.remove('error');
+                    toastEl.textContent = 'Updated!';
                     toastEl.classList.add('visible');
                     setTimeout(() => toastEl.classList.remove('visible'), 2500);
                     // Re-fetch image immediately
@@ -275,10 +278,17 @@
                     await fetchStatus();
                     countdownEl.textContent = formatCountdown(countdownSeconds);
                 } else {
-                    alert('Error: ' + (data.error || 'Unknown error'));
+                    const msg = data.error || 'Unknown error';
+                    toastEl.classList.add('error');
+                    toastEl.textContent = msg.includes('playlist') ? 'Add a plugin to a playlist first.' : msg;
+                    toastEl.classList.add('visible');
+                    setTimeout(() => { toastEl.classList.remove('visible', 'error'); }, 4000);
                 }
             } catch(e) {
-                alert('Update failed: ' + e.message);
+                toastEl.classList.add('error');
+                toastEl.textContent = 'Update failed — check the server.';
+                toastEl.classList.add('visible');
+                setTimeout(() => { toastEl.classList.remove('visible', 'error'); }, 4000);
             } finally {
                 btnUpdate.disabled = false;
                 btnUpdate.textContent = 'Update Now';

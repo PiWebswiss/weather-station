@@ -76,24 +76,33 @@ def get_status():
 
 @main_bp.route('/api/refresh_now', methods=['POST'])
 def refresh_now():
-    """Force an immediate display refresh using the active playlist."""
+    """Force an immediate display refresh. Uses active playlist if configured,
+    otherwise pushes the current preview image directly to the e-ink screen."""
     from refresh_task import PlaylistRefresh
+    from PIL import Image
     device_config = current_app.config['DEVICE_CONFIG']
     refresh_task = current_app.config['REFRESH_TASK']
+    display_manager = current_app.config['DISPLAY_MANAGER']
     playlist_manager = device_config.get_playlist_manager()
 
     tz_str = device_config.get_config("timezone", default="UTC")
     current_dt = datetime.now(pytz.timezone(tz_str))
 
     playlist = playlist_manager.determine_active_playlist(current_dt)
-    if not playlist or not playlist.plugins:
-        return jsonify({"error": "No active playlist with plugins found"}), 400
-
-    plugin_instance = playlist.get_next_plugin()
-    try:
-        refresh_task.manual_update(PlaylistRefresh(playlist, plugin_instance, force=True))
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    if playlist and playlist.plugins:
+        # Normal path: refresh via active playlist
+        plugin_instance = playlist.get_next_plugin()
+        try:
+            refresh_task.manual_update(PlaylistRefresh(playlist, plugin_instance, force=True))
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    else:
+        # No playlist configured — push whatever is in the current preview to the screen
+        try:
+            with Image.open(device_config.current_image_file) as img:
+                display_manager.display_image(img.copy())
+        except Exception as e:
+            return jsonify({"error": f"Could not push image to display: {e}"}), 500
 
     return jsonify({"success": True, "message": "Display updated"})
 

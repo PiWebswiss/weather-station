@@ -19,7 +19,19 @@
       "Bash(pip show:*)",
       "Bash(python -c \"import inkypi; print\\(inkypi.__file__\\)\")",
       "Bash(powershell.exe -Command \":*)",
-      "Bash(file /home/pi/weather-station/src/static/scripts/*.js)"
+      "Bash(file /home/pi/weather-station/src/static/scripts/*.js)",
+      "Bash(/tmp/audit_summary.txt:*)",
+      "Read(//tmp/**)",
+      "Bash(timeout 10 python3 src/inkypi.py --dev)",
+      "Bash(sudo systemctl:*)",
+      "Bash(sudo journalctl:*)",
+      "Bash(python3 -c \":*)",
+      "Bash(/usr/local/inkypi/venv_inkypi/bin/python -c \":*)",
+      "Bash(curl -s https://data.geo.admin.ch/api/stac/v1/collections)",
+      "Bash(ufw status:*)",
+      "Bash(sudo bash:*)",
+      "Read(//home/pi/weather-station/**)",
+      "Bash(grep -n \"^[a-z_]*\\(\\)$\\\\|^check_\\\\|^confirm_\\\\|^stop_\\\\|^disable_\\\\|^remove_\\\\|^echo_\" install/uninstall.sh)"
     ],
     "additionalDirectories": [
       "\\tmp",
