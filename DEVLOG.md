@@ -535,10 +535,49 @@ Transformer le dashboard d'un simple aperçu PNG en une interface plus vivante, 
   - protection automatique de la couleur de texte si le contraste devient trop faible
   - valeurs par défaut météo fixées à fond blanc / texte sombre dans `src/plugins/weather/settings.html`
   - push manuel d'un nouvel écran météo clair via `/update_now` pour remplacer l'ancien rendu sombre
+  - retrait des dégradés de fond météo et simplification des cartes / bordures dans `src/plugins/weather/render/weather.html`
+  - clarification du comportement :
+    - mode clair = fond blanc et rectangles lisibles
+    - mode noir = fond noir et structure plus dure, pensée pour mieux correspondre au rendu Spectra réel
+  - renforcement du texte trop faible en mode clair :
+    - labels météo plus foncés
+    - graph labels plus foncés
+    - textes secondaires agrandis
+  - amélioration de netteté du rendu météo :
+    - image-rendering plus strict sur les icônes
+    - text-rendering plus précis côté HTML
+    - unsharp mask léger appliqué après screenshot Chromium
 - Vérifications :
   - compilation Python de `src/plugins/weather/weather.py` vers `/tmp` : OK
   - `git diff --check` ciblé : OK
   - redémarrage de `inkypi.service` : OK
   - `/plugin/weather` : `200`
   - `/` : `200`
-  - `POST /api/refresh_now` : OK
+  - `POST /update_now` météo : OK
+
+### Stabilisation du rendu matériel Inky / Spectra
+- Nouveau constat :
+  - le screenshot météo était redevenu correct, mais la photo du panneau montrait encore une dérive couleur côté matériel
+- Correctif appliqué :
+  - durcissement du mode sombre météo pour revenir à un vrai noir en fond / panneaux dans `src/plugins/weather/weather.py`
+  - désactivation de l'unsharp mask pour le mode sombre afin d'éviter les halos gris visibles après quantification Spectra
+  - recentrage des réglages matériels par défaut :
+    - `brightness` de `2.0` vers `1.0`
+    - `inky_saturation` de `0.5` vers `0.0`
+  - alignement des valeurs de fallback dans :
+    - `src/display/inky_display.py`
+    - `src/blueprints/settings.py`
+    - `src/templates/settings.html`
+    - `src/config/device.json`
+    - `install/config_base/device.json`
+- Vérifications :
+  - compilation Python ciblée : OK
+  - `git diff --check` ciblé : OK
+  - `inkypi.service` : `active`
+  - `/` : `200`
+  - `/plugin/weather` : `200`
+  - `POST /update_now` sombre : OK
+  - `POST /update_now` clair : OK
+  - `current_image.png` vérifié :
+    - sombre : noir réel
+    - clair : blanc réel + cartes gris clair

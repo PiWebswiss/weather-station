@@ -1427,12 +1427,50 @@ Le rendu météo a été recentré sur un mode normal clair, plus fidèle au vis
   - fond `#ffffff`
   - texte `#111111`
 - génération immédiate d'un nouvel écran météo clair pour remplacer l'ancien rendu sombre
+- suppression des grands dégradés de fond et simplification des cartes en rectangles plus francs
+- séparation plus nette entre :
+  - mode clair : page blanche, texte sombre, cartes blanches bordées
+  - mode noir : fond noir, texte clair, cartes et bordures simplifiées pour mieux coller au rendu panel
+- durcissement du texte de support en mode clair :
+  - date
+  - labels métriques
+  - valeurs secondaires
+  - texte du graphique horaire
+  - températures basses du forecast
+- passe de netteté ciblée sur le rendu météo :
+  - icônes SVG rendues plus nettes
+  - texte Chromium moins flou
+  - unsharp mask léger appliqué après capture HTML
 
 Vérification ciblée :
 - compilation Python de `src/plugins/weather/weather.py` vers `/tmp` : OK
 - `/plugin/weather` : `200`
 - `/` : `200`
 - `POST /update_now` pour la météo : OK
+
+### Réglage du rendu réel Spectra
+
+Le dernier problème couleur ne venait plus du template météo lui-même, mais du chemin matériel Inky / Spectra :
+
+- le rendu météo sombre produit maintenant un vrai fond noir dans `src/plugins/weather/weather.py`
+- l'unsharp mask météo est désactivé pour les thèmes sombres afin d'éviter les halos gris qui se quantifient mal sur Spectra
+- les valeurs matérielles par défaut ont été recentrées pour éviter les écrans brûlés / saturés :
+  - `brightness` : `1.0`
+  - `inky_saturation` : `0.0`
+- ces valeurs ont été alignées dans :
+  - `src/config/device.json`
+  - `install/config_base/device.json`
+  - `src/display/inky_display.py`
+  - `src/blueprints/settings.py`
+  - `src/templates/settings.html`
+
+Vérification réelle après redémarrage :
+- `inkypi.service` : `active`
+- rendu météo sombre poussé via `/update_now` : OK
+- rendu météo clair poussé via `/update_now` : OK
+- échantillonnage du `current_image.png` :
+  - mode sombre : fond et cartes à `(0, 0, 0)`
+  - mode clair : fond à `(255, 255, 255)`, cartes en gris clair lisible
 
 Limite connue de la session :
 - impossible de faire un smoke test complet d'import **de tous les plugins** dans cet environnement shell nu, car l'interpréteur Python disponible ici n'a pas toutes les dépendances du projet (`psutil`, `pytz`, etc.). Sur le Raspberry avec l'environnement projet installé, ces imports sont pris en charge normalement.

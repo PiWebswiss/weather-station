@@ -10,6 +10,7 @@ import datetime
 import re
 import pytz
 from plugins.base_plugin.base_plugin import BasePlugin
+from PIL import ImageFilter
 
 
 # ---------------------------------------------------------------------------
@@ -272,34 +273,36 @@ def _resolve_theme_colors(plugin_settings: dict) -> dict:
     paper = _sanitize_color(plugin_settings.get("weatherBackgroundColor"), "#ffffff")
     requested_ink = _sanitize_color(plugin_settings.get("weatherTextColor"), "#111111")
     is_dark_paper = _relative_luminance(paper) < 0.32
-    fallback_ink = "#f5f3ef" if is_dark_paper else "#243247"
-    ink = requested_ink if _contrast_ratio(paper, requested_ink) >= 3.6 else fallback_ink
+    fallback_ink = "#f5f3ef" if is_dark_paper else "#111111"
+    ink = requested_ink if _contrast_ratio(paper, requested_ink) >= 3.8 else fallback_ink
 
     if is_dark_paper:
-        paper_soft = _mix_hex("#ffffff", paper, 0.12)
-        line = _mix_hex("#ffffff", paper, 0.22)
-        line_soft = _mix_hex("#ffffff", paper, 0.14)
-        panel_soft = _mix_hex("#ffffff", paper, 0.18)
-        panel = _mix_hex("#ffffff", paper, 0.14)
-        panel_strong = _mix_hex("#ffffff", paper, 0.24)
-        icon_badge = _mix_hex("#ffffff", paper, 0.72)
-        icon_badge_line = _mix_hex("#ffffff", paper, 0.5)
+        paper = "#000000"
+        paper_soft = "#000000"
+        line = "#f2f2f2"
+        line_soft = "#c9c9c9"
+        panel_soft = "#000000"
+        panel = "#000000"
+        panel_strong = "#000000"
+        icon_badge = "#ffffff"
+        icon_badge_line = "#1a1a1a"
     else:
-        paper_soft = _mix_hex(paper, "#edf3f9", 0.78)
-        line = _mix_hex(ink, paper, 0.16)
-        line_soft = _mix_hex(ink, paper, 0.08)
-        panel_soft = _mix_hex(paper, ink, 0.96)
-        panel = _mix_hex(paper, ink, 0.93)
-        panel_strong = _mix_hex(paper, ink, 0.88)
-        icon_badge = _mix_hex("#ffffff", paper, 0.92)
-        icon_badge_line = _mix_hex(ink, paper, 0.14)
+        paper = _mix_hex(paper, "#ffffff", 0.14)
+        paper_soft = paper
+        line = _mix_hex("#000000", paper, 0.34)
+        line_soft = _mix_hex("#000000", paper, 0.18)
+        panel_soft = _mix_hex(paper, "#edf0f2", 0.42)
+        panel = _mix_hex(paper, "#eef1f4", 0.32)
+        panel_strong = _mix_hex(paper, "#e6eaee", 0.26)
+        icon_badge = "#ffffff"
+        icon_badge_line = _mix_hex("#000000", paper, 0.22)
 
     return {
         "theme_paper": paper,
         "theme_paper_soft": paper_soft,
         "theme_ink": ink,
-        "theme_ink_soft": _mix_hex(ink, paper, 0.68),
-        "theme_ink_muted": _mix_hex(ink, paper, 0.48),
+        "theme_ink_soft": _mix_hex(ink, paper, 0.86 if not is_dark_paper else 0.78),
+        "theme_ink_muted": _mix_hex(ink, paper, 0.74 if not is_dark_paper else 0.64),
         "theme_line": line,
         "theme_line_soft": line_soft,
         "theme_panel_soft": panel_soft,
@@ -307,6 +310,7 @@ def _resolve_theme_colors(plugin_settings: dict) -> dict:
         "theme_panel_strong": panel_strong,
         "theme_icon_badge": icon_badge,
         "theme_icon_badge_line": icon_badge_line,
+        "theme_mode": "dark" if is_dark_paper else "light",
     }
 
 
@@ -374,9 +378,9 @@ def _build_hourly_svg(hours: list[dict], width: int = 780, height: int = 92, pal
     theme_ink_soft = palette.get("theme_ink_soft", "#6f7f94")
     theme_line = palette.get("theme_line", "#d6e0ec")
     theme_line_soft = palette.get("theme_line_soft", "#edf2f7")
-    chart_line = _mix_hex(theme_ink, theme_paper, 0.58)
-    chart_label = _mix_hex(theme_ink, theme_paper, 0.82)
-    chart_value = _mix_hex(theme_ink, theme_paper, 0.92)
+    chart_line = _mix_hex(theme_ink, theme_paper, 0.76)
+    chart_label = _mix_hex(theme_ink, theme_paper, 0.94)
+    chart_value = _mix_hex(theme_ink, theme_paper, 0.98)
 
     clean_hours = []
     for hour in hours:
@@ -433,7 +437,7 @@ def _build_hourly_svg(hours: list[dict], width: int = 780, height: int = 92, pal
     for index, (x, _, hour) in enumerate(points):
         if index == 0 or index == len(points) - 1 or index % step == 0:
             labels.append(
-                f'<text x="{x:.1f}" y="{height - 6}" font-size="9.5" font-weight="700" '
+                f'<text x="{x:.1f}" y="{height - 6}" font-size="10.5" font-weight="800" '
                 f'text-anchor="middle" fill="{chart_label}">{hour["time"]}</text>'
             )
 
@@ -447,9 +451,9 @@ def _build_hourly_svg(hours: list[dict], width: int = 780, height: int = 92, pal
         )
 
     temp_labels = [
-        f'<text x="{pad_left}" y="{pad_top - 1}" font-size="10" font-weight="700" fill="{chart_value}">{round(hi)}°</text>',
+        f'<text x="{pad_left}" y="{pad_top - 1}" font-size="11" font-weight="800" fill="{chart_value}">{round(hi)}°</text>',
         (
-            f'<text x="{pad_left}" y="{baseline_y - 3}" font-size="10" font-weight="700" fill="{chart_value}">'
+            f'<text x="{pad_left}" y="{baseline_y - 3}" font-size="11" font-weight="800" fill="{chart_value}">'
             f'{round(lo)}°</text>'
         ),
     ]
@@ -1047,6 +1051,15 @@ class WeatherPlugin(BasePlugin):
                 "Weather display render failed — Chromium returned no image. "
                 "Check that chromium or chromium-headless-shell is installed."
             )
+        # Tighten vector-ish UI edges after the Chromium screenshot pass so
+        # icons and labels stay crisper on the e-ink panel.
+        # Skip this for dark themes because it introduces gray halos that
+        # Spectra panels can quantize into unwanted colors.
+        is_dark_theme = _relative_luminance(
+            _sanitize_color(plugin_settings.get("weatherBackgroundColor"), "#ffffff")
+        ) < 0.32
+        if not is_dark_theme:
+            image = image.filter(ImageFilter.UnsharpMask(radius=0.7, percent=165, threshold=2))
         return image
 
     def _render(self, ctx: dict) -> str:

@@ -35,6 +35,9 @@ body {
   background: var(--paper);
   color: var(--ink);
   font-family: "Avenir Next", "Trebuchet MS", "Segoe UI", sans-serif;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: none;
+  font-smooth: never;
 }
 
 .weather-root {
@@ -45,16 +48,15 @@ body {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  background:
-    radial-gradient(circle at 50% -16%, rgba(149, 169, 200, 0.12), transparent 38%),
-    linear-gradient(180deg, var(--paper), var(--paper-soft));
+  background: var(--paper);
 }
 
 .weather-root::before {
   content: "";
   position: absolute;
   inset: 4px;
-  border: 1px solid var(--line);
+  border: 1.2px solid var(--line);
+  border-radius: 4px;
   pointer-events: none;
 }
 
@@ -76,9 +78,9 @@ body {
 
 .date-line {
   margin-top: 2px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ink-soft);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
   letter-spacing: 0.02em;
 }
 
@@ -90,9 +92,8 @@ body {
   min-height: 154px;
   padding: 10px 14px 8px;
   border-radius: 24px;
-  border: 1.2px solid var(--line);
-  background: linear-gradient(180deg, var(--panel-soft), var(--panel));
-  box-shadow: inset 0 0 0 1px var(--line-soft);
+  border: 1.4px solid var(--line);
+  background: var(--panel);
 }
 
 .current-section.no-stats {
@@ -111,6 +112,8 @@ body {
   height: 184px;
   display: block;
   object-fit: contain;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 .temperature-panel {
@@ -145,15 +148,15 @@ body {
   margin-top: 13px;
   font-size: 28px;
   font-weight: 700;
-  color: var(--ink-soft);
+  color: var(--ink);
   line-height: 1;
 }
 
 .feels-line {
   margin-top: 2px;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--ink-soft);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
 }
 
 .range-line {
@@ -192,6 +195,8 @@ body {
   border-radius: 999px;
   border: 1px solid var(--icon-badge-line);
   background: linear-gradient(180deg, var(--icon-badge), var(--panel-soft));
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 .moon-phase-emoji {
@@ -209,14 +214,14 @@ body {
 }
 
 .stat-label {
-  font-size: 11.5px;
+  font-size: 12.5px;
   font-weight: 800;
-  color: var(--ink-soft);
+  color: var(--ink);
   line-height: 1.1;
 }
 
 .stat-value {
-  font-size: 13.5px;
+  font-size: 14.5px;
   font-weight: 800;
   color: var(--ink);
   line-height: 1.15;
@@ -226,9 +231,9 @@ body {
 }
 
 .stat-value small {
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 700;
-  color: var(--ink-soft);
+  color: var(--ink);
 }
 
 .stat-item.pressure-item {
@@ -236,15 +241,14 @@ body {
   padding: 5px 8px;
   border: 1px solid var(--line-soft);
   border-radius: 14px;
-  background: linear-gradient(180deg, var(--panel-soft), var(--panel));
+  background: var(--panel);
 }
 
 .trend-shell {
   padding: 7px 10px 8px;
-  border: 1.2px solid var(--line);
+  border: 1.4px solid var(--line);
   border-radius: 22px;
-  background: linear-gradient(180deg, var(--panel-soft), var(--panel));
-  box-shadow: inset 0 0 0 1px var(--line-soft);
+  background: var(--panel);
 }
 
 .chart-shell {
@@ -255,6 +259,8 @@ body {
   width: 100%;
   height: 100%;
   display: block;
+  text-rendering: geometricPrecision;
+  shape-rendering: geometricPrecision;
 }
 
 .forecast-row {
@@ -269,18 +275,17 @@ body {
   min-height: 108px;
   padding: 8px 6px 10px;
   border-radius: 12px;
-  border: 1.2px solid var(--line);
-  background: linear-gradient(180deg, var(--panel-soft), var(--panel));
+  border: 1.4px solid var(--line);
+  background: var(--panel);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
   gap: 4px;
-  box-shadow: inset 0 0 0 1px var(--line-soft);
 }
 
 .forecast-card.today {
-  background: linear-gradient(180deg, var(--panel), var(--panel-strong));
+  background: var(--panel-strong);
   border-color: var(--line);
 }
 
@@ -295,6 +300,8 @@ body {
   height: 46px;
   object-fit: contain;
   display: block;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 .forecast-temps {
@@ -306,7 +313,7 @@ body {
 }
 
 .forecast-low {
-  color: var(--sky-deep);
+  color: var(--ink);
   font-weight: 700;
 }
 
@@ -322,9 +329,9 @@ body {
   position: absolute;
   right: 18px;
   bottom: 10px;
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--ink-muted);
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--ink);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }

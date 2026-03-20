@@ -211,6 +211,6 @@ For more details on how each setting behaves, see the [Pillow documentation](htt
 
 ### Inky Driver Saturation
 
-For Inky displays from Pimoroni, there is an additional option for `Inky Driver Saturation` in the Settings page. This controls the saturation of the palette to which an image is dithered to in the Inky library. Try setting this to '0' which seems to improve the quality of images displayed.
+For Inky displays from Pimoroni, there is an additional option for `Inky Driver Saturation` in the Settings page. This controls the saturation of the palette to which an image is dithered to in the Inky library. In this project, the safer default is now `0.0`, which tends to produce cleaner results on Spectra panels. The default image enhancement values are also centered back to `brightness: 1.0`, `contrast: 1.0`, `sharpness: 1.0`, and `saturation: 1.0`.
 
 See [this response](https://github.com/pimoroni/inky/issues/225#issuecomment-3213935144) from the Pimoroni team for more details.
