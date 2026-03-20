@@ -156,7 +156,7 @@ def generate_startup_image(dimensions=(800,480)):
 
     image_draw.text(
         (width / 2, height * 0.24),
-        "Welcome",
+        "Hi, there!",
         anchor="mm",
         fill=text_color,
         font=get_font("Jost", title_font_size, "bold"),
