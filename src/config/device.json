@@ -1,0 +1,28 @@
+{
+    "name": "InkyPi",
+    "display_type": "inky",
+    "resolution": [
+        800,
+        480
+    ],
+    "orientation": "horizontal",
+    "plugin_cycle_interval_seconds": 3600,
+    "playlist_config": {
+        "playlists": [
+            {
+                "name": "Default",
+                "start_time": "00:00",
+                "end_time": "24:00",
+                "plugins": [],
+                "current_plugin_index": null
+            }
+        ],
+        "active_playlist": null
+    },
+    "refresh_info": {
+        "refresh_time": null,
+        "image_hash": null,
+        "refresh_type": null,
+        "plugin_id": null
+    }
+}

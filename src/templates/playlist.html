@@ -18,6 +18,50 @@
     <script src="{{ url_for('static', filename='scripts/response_modal.js') }}"></script>
     <script src="{{ url_for('static', filename='scripts/refresh_settings_manager.js') }}"></script>
     <style>
+        /* Drag-and-drop reorder within playlist */
+        .playlist-reorder-btn {
+            font-size: 12px;
+            padding: 4px 10px;
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--muted);
+            cursor: pointer;
+            transition: background 0.15s, color 0.15s;
+        }
+        .playlist-reorder-btn.active {
+            background: var(--accent-soft);
+            color: var(--accent);
+            border-color: var(--accent);
+        }
+        .playlist-reorder-hint {
+            font-size: 12px;
+            color: var(--muted);
+            padding: 4px 0 6px 4px;
+            display: none;
+        }
+        .playlist-reorder-hint.visible { display: block; }
+        .plugin-list.reorder-mode .plugin-item {
+            cursor: grab;
+        }
+        .plugin-list.reorder-mode .plugin-item.dragging {
+            opacity: 0.45;
+            cursor: grabbing;
+        }
+        .plugin-list.reorder-mode .plugin-item.drag-over {
+            outline: 2px dashed var(--accent);
+            outline-offset: 2px;
+        }
+        .drag-handle {
+            display: none;
+            color: var(--muted);
+            font-size: 16px;
+            padding: 0 6px;
+            cursor: grab;
+            user-select: none;
+        }
+        .reorder-mode .drag-handle { display: inline; }
+
         /* Plugin Instance Thumbnail */
         .plugin-thumbnail-container {
             position: relative;
@@ -403,13 +447,24 @@
             <div class="playlist-item {% if playlist.name == playlist_config.active_playlist %}active{% endif %}">
                     <div class="playlist-header">
                         <span class="playlist-title">{{ playlist.name }}</span>
-                        <button class="edit-button" onclick="openEditModal('{{ playlist.name }}', '{{ playlist.start_time }}','{{ playlist.end_time }}')"><img src="{{ url_for('static', filename='icons/settings.png') }}" alt="edit playlist" class="action-icon"></button>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <button class="playlist-reorder-btn"
+                                    id="reorderBtn-{{ loop.index }}"
+                                    onclick="toggleReorder('{{ playlist.name }}', {{ loop.index }})">
+                                Reorder
+                            </button>
+                            <button class="edit-button" onclick="openEditModal('{{ playlist.name }}', '{{ playlist.start_time }}','{{ playlist.end_time }}')">
+                                <img src="{{ url_for('static', filename='icons/settings.png') }}" alt="edit playlist" class="action-icon">
+                            </button>
+                        </div>
                     </div>
+                    <div class="playlist-reorder-hint" id="reorderHint-{{ loop.index }}">Drag items to reorder, then click Save order.</div>
                     <!-- Plugin List -->
-                    <div class="plugin-list">
+                    <div class="plugin-list" id="pluginList-{{ loop.index }}" data-playlist="{{ playlist.name }}">
                         {% for plugin_instance in playlist.plugins %}
-                        <div class="plugin-item">
+                        <div class="plugin-item" data-instance-name="{{ plugin_instance.name }}">
                             <div class="plugin-info" id="{{plugin_instance.name}}">
+                                <span class="drag-handle" title="Drag to reorder">⠿</span>
                                 <img src="{{ url_for('plugin.image', plugin_id=plugin_instance.plugin_id, filename='icon.png') }}" alt="Plugin Icon" class="plugin-icon">
                                 <span class="plugin-instance">{{ plugin_instance.name }}</span>
 
@@ -521,5 +576,114 @@
             <div class="thumbnail-preview-info" id="thumbnailPreviewInfo"></div>
         </div>
     </div>
+
+    <script>
+        // ── Playlist plugin drag-and-drop reorder ──────────────────────────
+        const reorderState = {}; // keyed by playlist name
+
+        function toggleReorder(playlistName, idx) {
+            const list = document.getElementById(`pluginList-${idx}`);
+            const btn = document.getElementById(`reorderBtn-${idx}`);
+            const hint = document.getElementById(`reorderHint-${idx}`);
+
+            if (!reorderState[playlistName]) {
+                // Enable reorder mode
+                reorderState[playlistName] = { idx, list };
+                list.classList.add('reorder-mode');
+                btn.classList.add('active');
+                btn.textContent = 'Save order';
+                hint.classList.add('visible');
+
+                Array.from(list.children).forEach(item => {
+                    item.draggable = true;
+                    item.addEventListener('dragstart', onDragStart);
+                    item.addEventListener('dragend', onDragEnd);
+                    item.addEventListener('dragover', onDragOver);
+                    item.addEventListener('dragleave', onDragLeave);
+                    item.addEventListener('drop', onDrop);
+                    // Prevent navigating away while dragging
+                    item.querySelectorAll('a, button').forEach(el => {
+                        el._origPointerEvents = el.style.pointerEvents;
+                        el.style.pointerEvents = 'none';
+                    });
+                });
+            } else {
+                // Save and exit reorder mode
+                disableReorder(playlistName, idx, list, btn, hint, true);
+            }
+        }
+
+        function disableReorder(playlistName, idx, list, btn, hint, save) {
+            delete reorderState[playlistName];
+            list.classList.remove('reorder-mode');
+            btn.classList.remove('active');
+            btn.textContent = 'Reorder';
+            hint.classList.remove('visible');
+
+            Array.from(list.children).forEach(item => {
+                item.draggable = false;
+                item.removeEventListener('dragstart', onDragStart);
+                item.removeEventListener('dragend', onDragEnd);
+                item.removeEventListener('dragover', onDragOver);
+                item.removeEventListener('dragleave', onDragLeave);
+                item.removeEventListener('drop', onDrop);
+                item.querySelectorAll('a, button').forEach(el => {
+                    el.style.pointerEvents = el._origPointerEvents || '';
+                });
+            });
+
+            if (save) savePlaylistPluginOrder(playlistName, list);
+        }
+
+        let draggedPlugin = null;
+
+        function onDragStart(e) {
+            draggedPlugin = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+        }
+        function onDragEnd() {
+            this.classList.remove('dragging');
+            if (this.parentElement) {
+                Array.from(this.parentElement.children).forEach(i => i.classList.remove('drag-over'));
+            }
+        }
+        function onDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            if (this !== draggedPlugin) this.classList.add('drag-over');
+        }
+        function onDragLeave() { this.classList.remove('drag-over'); }
+        function onDrop(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+            if (this !== draggedPlugin) {
+                const parent = this.parentElement;
+                const items = Array.from(parent.children);
+                if (items.indexOf(draggedPlugin) < items.indexOf(this)) {
+                    parent.insertBefore(draggedPlugin, this.nextSibling);
+                } else {
+                    parent.insertBefore(draggedPlugin, this);
+                }
+            }
+        }
+
+        async function savePlaylistPluginOrder(playlistName, list) {
+            const order = Array.from(list.children).map(i => i.dataset.instanceName);
+            try {
+                const r = await fetch(`/api/playlist_plugin_order/${encodeURIComponent(playlistName)}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ order })
+                });
+                if (!r.ok) {
+                    const data = await r.json();
+                    alert('Failed to save order: ' + (data.error || 'Unknown error'));
+                }
+            } catch(e) {
+                console.error('Failed to save plugin order:', e);
+            }
+        }
+    </script>
 </body>
 </html>

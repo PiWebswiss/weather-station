@@ -12,7 +12,7 @@
         })();
 
         let lastModified = null;
-        const refreshIntervalMs = 3 * 1000;
+        const refreshIntervalMs = 1000; // 1-second polling
 
         async function refreshImage() {
             const img = document.querySelector('.preview-img');
@@ -21,12 +21,13 @@
                 const headers = {};
                 if (lastModified) headers['If-Modified-Since'] = lastModified;
                 const response = await fetch('{{ url_for("main.get_current_image") }}', { headers });
-                if (response.status === 304) return;
-                if (!response.ok) return;
+                if (response.status === 304) return false;
+                if (!response.ok) return false;
                 const blob = await response.blob();
                 img.src = URL.createObjectURL(blob);
                 lastModified = response.headers.get('Last-Modified');
-            } catch (e) { console.error('Image refresh error:', e); }
+                return true;
+            } catch (e) { console.error('Image refresh error:', e); return false; }
         }
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -35,6 +36,51 @@
         });
     </script>
     <script src="{{ url_for('static', filename='scripts/image_modal.js') }}"></script>
+    <style>
+        /* ── Countdown / action bar ─────────────────────────────────────── */
+        .preview-action-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 16px;
+            background: var(--card-2);
+            border-top: 1px solid var(--border);
+            border-radius: 0 0 var(--radius) var(--radius);
+            flex-wrap: wrap;
+        }
+        .countdown-label {
+            font-size: 13px;
+            color: var(--muted);
+            flex: 1;
+        }
+        .countdown-value {
+            font-variant-numeric: tabular-nums;
+            font-weight: 600;
+            color: var(--accent);
+        }
+        .btn-update-now {
+            padding: 7px 18px;
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.15s, transform 0.1s;
+            white-space: nowrap;
+        }
+        .btn-update-now:hover { opacity: 0.88; }
+        .btn-update-now:active { transform: scale(0.96); }
+        .btn-update-now:disabled { opacity: 0.5; cursor: not-allowed; }
+        .update-toast {
+            font-size: 12px;
+            color: var(--accent);
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+        .update-toast.visible { opacity: 1; }
+    </style>
 </head>
 <body class="wp-admin">
     <script src="{{ url_for('static', filename='scripts/dark_mode.js') }}"></script>
@@ -95,11 +141,21 @@
                     </div>
                     <div class="preview-status">
                         <span class="status-dot"></span>
-                        <span id="previewStatus">Watching for changes…</span>
+                        <span id="previewStatus">Loading…</span>
                     </div>
                 </div>
                 <div class="image-container">
                     <img class="preview-img" src="{{ url_for('static', filename='images/current_image.png') }}" alt="Current display output">
+                </div>
+                <!-- Action bar: countdown + update button -->
+                <div class="preview-action-bar">
+                    <span class="countdown-label">
+                        Next refresh in: <span class="countdown-value" id="countdownDisplay">—</span>
+                    </span>
+                    <span class="update-toast" id="updateToast">Updated!</span>
+                    <button class="btn-update-now" id="btnUpdateNow" onclick="triggerUpdateNow()">
+                        Update Now
+                    </button>
                 </div>
             </div>
 
@@ -143,20 +199,91 @@
     <script>
         // ── Live preview status ────────────────────────────────────────────
         const statusEl = document.getElementById('previewStatus');
-        let prevSrc = null;
-        const origRefreshImage = refreshImage;
         async function trackedRefresh() {
             const img = document.querySelector('.preview-img');
             const before = img ? img.src : null;
-            await origRefreshImage();
+            const changed = await refreshImage();
             const after = img ? img.src : null;
-            if (after && after !== before) {
+            if (changed && after && after !== before) {
                 statusEl.textContent = 'Updated ' + new Date().toLocaleTimeString();
             }
         }
         document.addEventListener('DOMContentLoaded', () => {
-            setInterval(trackedRefresh, 3000);
+            trackedRefresh();
+            setInterval(trackedRefresh, refreshIntervalMs);
         });
+
+        // ── Countdown timer ────────────────────────────────────────────────
+        let countdownSeconds = null;
+        const countdownEl = document.getElementById('countdownDisplay');
+
+        function formatCountdown(sec) {
+            if (sec === null || sec === undefined) return '—';
+            if (sec <= 0) return 'now';
+            const h = Math.floor(sec / 3600);
+            const m = Math.floor((sec % 3600) / 60);
+            const s = sec % 60;
+            if (h > 0) return `${h}h ${String(m).padStart(2,'0')}m`;
+            return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        }
+
+        async function fetchStatus() {
+            try {
+                const r = await fetch('{{ url_for("main.get_status") }}');
+                if (!r.ok) return;
+                const data = await r.json();
+                if (data.seconds_until_refresh !== null && data.seconds_until_refresh !== undefined) {
+                    countdownSeconds = data.seconds_until_refresh;
+                }
+            } catch(e) {}
+        }
+
+        // Tick countdown every second, re-sync from server every 30s
+        setInterval(() => {
+            if (countdownSeconds !== null) {
+                countdownSeconds = Math.max(0, countdownSeconds - 1);
+                countdownEl.textContent = formatCountdown(countdownSeconds);
+            }
+        }, 1000);
+
+        setInterval(fetchStatus, 30000);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchStatus().then(() => {
+                countdownEl.textContent = formatCountdown(countdownSeconds);
+            });
+        });
+
+        // ── Update Now button ──────────────────────────────────────────────
+        const btnUpdate = document.getElementById('btnUpdateNow');
+        const toastEl = document.getElementById('updateToast');
+
+        async function triggerUpdateNow() {
+            btnUpdate.disabled = true;
+            btnUpdate.textContent = 'Updating…';
+            try {
+                const r = await fetch('{{ url_for("main.refresh_now") }}', { method: 'POST' });
+                const data = await r.json();
+                if (r.ok) {
+                    statusEl.textContent = 'Updated ' + new Date().toLocaleTimeString();
+                    toastEl.classList.add('visible');
+                    setTimeout(() => toastEl.classList.remove('visible'), 2500);
+                    // Re-fetch image immediately
+                    lastModified = null;
+                    await refreshImage();
+                    // Reset countdown
+                    await fetchStatus();
+                    countdownEl.textContent = formatCountdown(countdownSeconds);
+                } else {
+                    alert('Error: ' + (data.error || 'Unknown error'));
+                }
+            } catch(e) {
+                alert('Update failed: ' + e.message);
+            } finally {
+                btnUpdate.disabled = false;
+                btnUpdate.textContent = 'Update Now';
+            }
+        }
 
         // ── View toggle (grid / list) ──────────────────────────────────────
         const viewToggle = document.getElementById('viewToggle');

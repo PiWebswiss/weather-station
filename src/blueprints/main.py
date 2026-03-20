@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app, render_template, send_file
 import os
+import pytz
 from datetime import datetime
 
 main_bp = Blueprint("main", __name__)
@@ -40,6 +41,61 @@ def get_current_image():
     response.headers['Last-Modified'] = last_modified.strftime('%a, %d %b %Y %H:%M:%S GMT')
     response.headers['Cache-Control'] = 'no-cache'
     return response
+
+
+@main_bp.route('/api/status')
+def get_status():
+    """Return current display status and refresh countdown info."""
+    device_config = current_app.config['DEVICE_CONFIG']
+    refresh_info = device_config.get_refresh_info()
+    interval = device_config.get_config("plugin_cycle_interval_seconds", default=3600)
+
+    last_refresh = refresh_info.refresh_time
+    seconds_until_refresh = None
+    if last_refresh:
+        try:
+            tz_str = device_config.get_config("timezone", default="UTC")
+            now = datetime.now(pytz.timezone(tz_str))
+            last_dt = datetime.fromisoformat(last_refresh)
+            if last_dt.tzinfo is None:
+                last_dt = last_dt.replace(tzinfo=pytz.UTC)
+            elapsed = (now - last_dt).total_seconds()
+            seconds_until_refresh = max(0, int(interval - elapsed))
+        except Exception:
+            pass
+
+    return jsonify({
+        "last_refresh_time": last_refresh,
+        "plugin_cycle_interval_seconds": interval,
+        "seconds_until_refresh": seconds_until_refresh,
+        "current_plugin_id": refresh_info.plugin_id,
+        "current_plugin_instance": refresh_info.plugin_instance,
+        "active_playlist": refresh_info.playlist,
+    })
+
+
+@main_bp.route('/api/refresh_now', methods=['POST'])
+def refresh_now():
+    """Force an immediate display refresh using the active playlist."""
+    from refresh_task import PlaylistRefresh
+    device_config = current_app.config['DEVICE_CONFIG']
+    refresh_task = current_app.config['REFRESH_TASK']
+    playlist_manager = device_config.get_playlist_manager()
+
+    tz_str = device_config.get_config("timezone", default="UTC")
+    current_dt = datetime.now(pytz.timezone(tz_str))
+
+    playlist = playlist_manager.determine_active_playlist(current_dt)
+    if not playlist or not playlist.plugins:
+        return jsonify({"error": "No active playlist with plugins found"}), 400
+
+    plugin_instance = playlist.get_next_plugin()
+    try:
+        refresh_task.manual_update(PlaylistRefresh(playlist, plugin_instance, force=True))
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    return jsonify({"success": True, "message": "Display updated"})
 
 
 @main_bp.route('/api/plugin_order', methods=['POST'])
