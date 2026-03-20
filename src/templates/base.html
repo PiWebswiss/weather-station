@@ -22,12 +22,32 @@
             background: var(--card-2);
             border-color: var(--border);
             color: var(--ink);
+            border-radius: var(--radius-sm);
+            min-height: var(--touch-target);
+            box-shadow: none;
+            transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+        }
+        .form-select:hover, .form-control:hover { border-color: rgba(45, 105, 98, 0.28); }
+        .form-select:focus, .form-control:focus {
+            background: var(--card);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px var(--focus);
+        }
+        .btn {
+            min-height: var(--touch-target);
+            border-radius: 14px;
+            font-weight: 600;
+            box-shadow: none;
         }
         .btn-primary {
             background: var(--accent);
             border-color: var(--accent);
         }
-        .btn-primary:hover { opacity: 0.88; background: var(--accent); }
+        .btn-primary:hover { opacity: 0.92; background: var(--accent); }
+        .btn:focus-visible {
+            outline: 3px solid var(--focus-strong);
+            outline-offset: 2px;
+        }
         .text-muted { color: var(--muted) !important; }
     </style>
 </head>

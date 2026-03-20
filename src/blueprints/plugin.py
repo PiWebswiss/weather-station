@@ -2,12 +2,53 @@ from flask import Blueprint, request, jsonify, current_app, render_template, sen
 from plugins.plugin_registry import get_plugin_instance
 from utils.app_utils import resolve_path, handle_request_files, parse_form
 from refresh_task import ManualRefresh, PlaylistRefresh
+import pytz
+from datetime import datetime
 import json
 import os
 import logging
 
 logger = logging.getLogger(__name__)
 plugin_bp = Blueprint("plugin", __name__)
+
+
+def _get_current_datetime(device_config):
+    timezone_name = device_config.get_config("timezone", default="UTC") or "UTC"
+    try:
+        timezone = pytz.timezone(timezone_name)
+    except Exception:
+        timezone = pytz.UTC
+    return datetime.now(timezone)
+
+
+def _resolve_last_update_datetime(device_config, fallback_dt=None):
+    refresh_info = device_config.get_refresh_info()
+    refresh_time = getattr(refresh_info, "refresh_time", None)
+    if refresh_time:
+        try:
+            update_dt = datetime.fromisoformat(refresh_time)
+            if update_dt.tzinfo is None:
+                timezone = _get_current_datetime(device_config).tzinfo or pytz.UTC
+                if hasattr(timezone, "localize"):
+                    update_dt = timezone.localize(update_dt)
+                else:
+                    update_dt = update_dt.replace(tzinfo=timezone)
+            return update_dt
+        except Exception:
+            pass
+    return fallback_dt or _get_current_datetime(device_config)
+
+
+def _build_update_payload(device_config, message, updated_at=None):
+    update_dt = _resolve_last_update_datetime(device_config, fallback_dt=updated_at)
+    return {
+        "success": True,
+        "message": message,
+        "updated_at": update_dt.isoformat(),
+        "updated_at_display": update_dt.strftime("%H:%M"),
+        "updated_at_long": update_dt.strftime("%A, %d %b %Y %H:%M"),
+        "updated_timezone": getattr(update_dt.tzinfo, "zone", None) or (device_config.get_config("timezone", default="UTC") or "UTC"),
+    }
 
 def _delete_plugin_instance_images(device_config, plugin_instance_obj):
     """Delete all images associated with a plugin instance."""
@@ -224,7 +265,7 @@ def display_plugin_instance():
     except Exception as e:
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
-    return jsonify({"success": True, "message": "Display updated"}), 200
+    return jsonify(_build_update_payload(device_config, "Display updated")), 200
 
 @plugin_bp.route('/update_now', methods=['POST'])
 def update_now():
@@ -236,6 +277,7 @@ def update_now():
         plugin_settings = parse_form(request.form)
         plugin_settings.update(handle_request_files(request.files))
         plugin_id = plugin_settings.pop("plugin_id")
+        current_dt = _get_current_datetime(device_config)
 
         # Check if refresh task is running
         if refresh_task.running:
@@ -255,4 +297,4 @@ def update_now():
         logger.exception(f"Error in update_now: {str(e)}")
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
-    return jsonify({"success": True, "message": "Display updated"}), 200
+    return jsonify(_build_update_payload(device_config, "Display updated", updated_at=current_dt)), 200

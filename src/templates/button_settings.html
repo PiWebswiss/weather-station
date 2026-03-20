@@ -59,13 +59,9 @@ document.getElementById('btnForm').addEventListener('submit', function(e) {
   fetch('/settings/buttons/update', { method: 'POST', body: data })
     .then(r => r.json())
     .then(res => {
-      if (typeof showResponseModal === 'function') {
-        showResponseModal(res.status === 'ok' ? 'success' : 'failure', res.message);
-      } else {
-        alert(res.message);
-      }
+      showResponseModal(res.status === 'ok' ? 'success' : 'failure', res.message);
     })
-    .catch(() => alert('Failed to save button settings.'));
+    .catch(() => showResponseModal('failure', 'Failed to save button settings.'));
 });
 </script>
 

@@ -332,3 +332,213 @@ Transformer le dashboard d'un simple aperçu PNG en une interface plus vivante, 
   - modifier son contenu, sa taille, sa position, ses couleurs, son style et son opacité
 - Les images uploadées sont stockées comme fichiers sauvegardés du projet, puis reliées au bloc concerné via une clé stable
 - Le rendu `weather.html` affiche réellement ces blocs personnalisés sur l'écran météo généré
+
+### Polish final UI web
+- Reprise du thème partagé `main.css` pour renforcer le rendu admin :
+  - focus clavier plus visible
+  - meilleure cohérence liens / boutons / cartes
+  - tailles tactiles minimales plus propres
+  - shell de page et modales mieux espacés
+- Alignement des pages Bootstrap héritées via `base.html` pour éviter l'effet "mélange de styles"
+- Remplacement des `alert()` bruts par le système de toast/modal sur :
+  - settings
+  - buttons
+  - plugin editor
+  - playlist
+- Redémarrage de `inkypi.service` puis vérification HTTP :
+  - `/` `200`
+  - `/settings` `200`
+  - `/plugin/weather` `200`
+  - `/live` `200`
+  - `/settings/buttons` `200`
+  - `/playlist` `200`
+
+### Correctifs install / uninstall + welcome screen
+- Correction du bug d'installation lié au nom historique `e-inkpi` :
+  - les scripts d'installation / update / uninstall utilisaient encore l'ancien nom
+  - le dépôt embarque pourtant `inkypi.service`
+- Alignement des scripts sur le nom réel `inkypi`
+- Durcissement de `uninstall.sh` :
+  - suppression des unités `inkypi` et `e-inkpi` si elles existent
+  - suppression des binaires et chemins legacy
+  - évitement de la suppression accidentelle de `src/config/device.json` dans le dépôt quand `src` est monté via symlink
+- Réactivation de l'écran de bienvenue au moment de l'installation
+- Refonte du rendu de ce welcome screen :
+  - titre plus clair
+  - `http://<hostname>.local`
+  - `http://<ip-address>`
+  - message d'aide réseau si `.local` ne résout pas
+
+### Vérifications complémentaires
+- `bash -n install/install.sh` : OK
+- `bash -n install/uninstall.sh` : OK
+- `python3 -m py_compile src/utils/app_utils.py` : OK
+- rendu réel du welcome screen généré en `800x480` : OK
+
+### Reprise du layout météo par défaut
+- Refonte du template météo pour coller davantage à la référence fournie :
+  - header simplifié
+  - bloc météo principal plus aéré
+  - température plus dominante
+  - cartes forecast plus fines
+  - moins d'éléments parasites par défaut
+- Le thème MeteoSwiss n'est plus réservé au provider MeteoSwiss :
+  - les icônes météo MeteoSwiss sont aussi utilisées avec **Open-Meteo**
+  - cela garde une cohérence visuelle pour les villes hors Suisse
+- Ajout de deux contrôles de personnalisation globaux dans les settings météo :
+  - `weatherBackgroundColor`
+  - `weatherTextColor`
+- Par défaut, le champ "refresh time" est maintenant désactivé pour garder un écran plus proche de la maquette
+
+### Vérifications météo
+- `git diff --check` ciblé sur le plugin météo : OK
+- compilation Python ciblée de `weather.py` : OK
+- rendu réel `800x480` d'un écran **Los Angeles, California** avec **Open-Meteo** et style MeteoSwiss : OK
+- après redémarrage service :
+  - `/` `200`
+  - `/plugin/weather` `200`
+  - `/live` `200`
+  - `/settings` `200`
+
+### Correctif render watch / clock dashboard
+- Diagnostic :
+  - le screenshot utilisateur montrait le mode `Interactive Watch` du dashboard
+  - ce mode n'était qu'un aperçu navigateur
+  - `Update Now` ne rendait donc pas la watch au display
+- Correctif appliqué :
+  - ajout d'un endpoint `POST /api/render_live_watch`
+  - génération serveur d'une image statique de la watch à partir de l'état courant :
+    - face `analog`
+    - face `digital`
+    - face `word`
+    - thème clair / sombre
+    - secondes on/off
+  - le bouton dashboard adapte maintenant son libellé :
+    - `Update Now` pour l'image
+    - `Render Watch` pour la watch
+- Vérifications :
+  - `main.py` compilé vers `/tmp` : OK
+  - `git diff --check` ciblé : OK
+  - `POST /api/render_live_watch` : OK
+  - `/api/status` retourne maintenant `current_plugin_id: live_watch`
+  - `current_image.png` contient bien la watch rendue
+
+### Correctif heure watch / live clock
+- Problème signalé :
+  - l'heure de la watch n'était pas toujours correcte
+  - le rendu statique et la page interactive dépendaient encore trop de l'horloge du navigateur
+- Correctif appliqué :
+  - ajout d'un snapshot horaire serveur timezone-aware dans `main.py`
+  - injection de ce snapshot dans `live_render.html` pour figer le rendu e-ink sur l'heure exacte du serveur
+  - enrichissement de `/api/status` avec :
+    - `server_time_iso`
+    - `server_time_epoch_ms`
+    - `server_time_offset_minutes`
+    - `server_timezone`
+  - la page `live.html` utilise maintenant cette horloge serveur comme base et se resynchronise au polling statut
+  - le footer de dernière mise à jour n'utilise plus le fuseau local du navigateur
+- Vérifications :
+  - compilation Python de `src/blueprints/main.py` vers `/tmp` : OK
+  - `git diff --check` ciblé : OK
+  - redémarrage de `inkypi.service` : OK
+  - `/` : `200`
+  - `/live` : `200`
+  - `/api/current_image` : `200`
+  - `/api/status` : `200`
+  - `POST /api/render_live_watch` : OK
+  - `/api/status` après rendu :
+    - `current_plugin_id: live_watch`
+    - `server_timezone: Europe/Zurich`
+
+### Simplification UI du plugin météo + lisibilité écran
+- Suppression de l'ancien bloc `Layout Designer` dans `src/plugins/weather/settings.html`
+- Conservation du `Display Composer` comme seul outil de personnalisation visuelle côté météo
+- Reprise des cartes forecast 5 jours :
+  - bordure plus propre
+  - fond moins blanc
+  - meilleur rendu sur les thèmes plus sombres
+- Reprise du rendu météo principal :
+  - texte sous le graphique horaire assombri et agrandi
+  - labels des métriques plus lisibles
+  - valeurs météo plus contrastées
+  - icônes météo un peu plus présentes
+  - pression mise en avant avec son icône dans le panneau courant
+  - badge clair ajouté derrière les icônes pour une meilleure visibilité sur fond sombre
+  - complément Open-Meteo désormais récupéré aussi en mode MeteoSwiss pour garantir la pression
+- Vérifications :
+  - compilation Python de `src/plugins/weather/weather.py` vers `/tmp` : OK
+  - `git diff --check` ciblé : OK
+  - redémarrage de `inkypi.service` : OK
+  - `/plugin/weather` : `200`
+  - `/` : `200`
+
+### Notification horodatée lors des mises à jour écran
+- Les endpoints d'update renvoient maintenant un horodatage structuré :
+  - `updated_at`
+  - `updated_at_display`
+  - `updated_at_long`
+  - `updated_timezone`
+- Le bouton `Update Display` des pages plugin affiche maintenant un message du type :
+  - `Screen updated at 21:31 (Europe/Zurich).`
+- Le dashboard affiche désormais :
+  - `Screen updated at HH:MM`
+  - `Watch rendered at HH:MM`
+- L'action d'affichage d'une instance depuis les playlists réutilise aussi ce message horodaté
+- Vérifications :
+  - compilation Python de `src/blueprints/main.py` vers `/tmp` : OK
+  - compilation Python de `src/blueprints/plugin.py` vers `/tmp` : OK
+  - `git diff --check` ciblé : OK
+  - `POST /api/refresh_now` : OK
+  - `POST /api/render_live_watch` : OK
+
+### Consolidation météo multi-profils couleur
+- Problème signalé :
+  - les icônes de métriques restaient peu visibles sur fonds sombres
+  - certaines combinaisons personnalisées fond / texte rendaient l'écran trop plat
+  - l'utilisateur voulait rester sur seulement 4 métriques
+- Correctif appliqué :
+  - ajout d'une dérivation de thème météo plus robuste dans `src/plugins/weather/weather.py`
+  - correction automatique de la couleur de texte si le contraste avec le fond choisi est insuffisant
+  - ajout d'un fond de carte et d'une bordure au bloc météo principal et au bloc graphique dans `src/plugins/weather/render/weather.html`
+  - limitation du panneau métriques à 4 informations principales :
+    - `Sunrise`
+    - `Wind`
+    - `Pressure`
+    - `Humidity`
+  - badges d'icônes renforcés pour rester visibles sur thèmes sombres
+  - champs `input[type=color]` rendus plus lisibles dans `src/static/styles/main.css`
+- Vérifications :
+  - compilation Python de `src/plugins/weather/weather.py` vers `/tmp` : OK
+  - `git diff --check` ciblé : OK
+
+### Ajustement du header partagé des plugins
+- Problème signalé :
+  - le bouton `Back` était trop proche du bloc titre / icône sur les pages plugin
+  - besoin de vérifier aussi les autres plugins
+- Correctif appliqué :
+  - ajout d'une marge sous le bouton `Back` dans `src/static/styles/main.css`
+  - léger ajustement vertical du header partagé plugin/settings
+  - correctif mutualisé pour toutes les pages qui utilisent ce shell
+- Vérifications :
+  - `git diff --check` ciblé : OK
+  - sweep des routes `/plugin/<id>` : tous les vrais plugins testés retournent `200`
+  - `/settings` : `200`
+  - `/playlist` : `200`
+  - `/plugin/weather` : `200`
+
+### Sécurisation des couleurs météo pour l'écran E-Ink
+- Problème signalé :
+  - avec certaines autres couleurs, le rendu météo devenait trop faible ou presque invisible sur l'écran
+- Correctif appliqué :
+  - rollback des essais couleur météo qui dégradaient le rendu
+  - retour à une logique thème météo plus simple dans `src/plugins/weather/weather.py`
+  - protection automatique de la couleur de texte si le contraste devient trop faible
+  - valeurs par défaut météo fixées à fond blanc / texte sombre dans `src/plugins/weather/settings.html`
+  - push manuel d'un nouvel écran météo clair via `/update_now` pour remplacer l'ancien rendu sombre
+- Vérifications :
+  - compilation Python de `src/plugins/weather/weather.py` vers `/tmp` : OK
+  - `git diff --check` ciblé : OK
+  - redémarrage de `inkypi.service` : OK
+  - `/plugin/weather` : `200`
+  - `/` : `200`
+  - `POST /api/refresh_now` : OK

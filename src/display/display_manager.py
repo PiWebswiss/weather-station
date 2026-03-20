@@ -78,13 +78,12 @@ class DisplayManager:
 
         if not hasattr(self, "display"):
             raise ValueError("No valid display instance initialized.")
-        
-        # Save the image
+
+        # Preprocess first so the saved preview matches the real panel output.
+        image = self._preprocess_image(image, image_settings)
+
         logger.info(f"Saving image to {self.device_config.current_image_file}")
         image.save(self.device_config.current_image_file)
-
-        # Resize and adjust orientation
-        image = self._preprocess_image(image, image_settings)
 
         # Pass to the concrete instance to render to the device.
         self.display.display_image(image, image_settings)
@@ -110,12 +109,12 @@ class DisplayManager:
 
         logger.info("Partial refresh requested.")
 
-        # Do NOT save partial-zone image as current_image_file — it would break
-        # the admin UI preview (which would show only the partial zone, e.g. temp only).
-        # The full-zone image from the previous full refresh is preserved as the preview.
-
-        # Apply the same preprocessing pipeline as display_image
+        # Apply the same preprocessing pipeline as display_image so the dashboard
+        # preview stays aligned with what was actually sent to the panel.
         image = self._preprocess_image(image, image_settings)
+
+        logger.info(f"Saving image to {self.device_config.current_image_file}")
+        image.save(self.device_config.current_image_file)
 
         # Pass to the concrete instance; it will use partial mode if available
         self.display.display_partial_image(image, image_settings)

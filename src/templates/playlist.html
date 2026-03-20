@@ -162,7 +162,7 @@
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('An error occurred while processing your request.');
+                showResponseModal('failure', 'An error occurred while processing your request.');
             }
         }
 
@@ -180,6 +180,15 @@
         function closeThumbnailPreview() {
             const modal = document.getElementById('thumbnailPreviewModal');
             modal.style.display = 'none';
+        }
+
+        function buildScreenUpdateMessage(result) {
+            const updatedAt = result && result.updated_at_display;
+            const timezone = result && result.updated_timezone;
+            if (updatedAt) {
+                return `Screen updated at ${updatedAt}${timezone ? ` (${timezone})` : ''}.`;
+            }
+            return `Success! ${(result && result.message) || 'Display updated'}`;
         }
 
         // Close modal when clicking outside the image
@@ -212,14 +221,14 @@
 
                 const result = await response.json();
                 if (response.ok) {
-                    sessionStorage.setItem("storedMessage", JSON.stringify({ type: "success", text: `Success! ${result.message}` }));
+                    sessionStorage.setItem("storedMessage", JSON.stringify({ type: "success", text: buildScreenUpdateMessage(result) }));
                     location.reload();
                 } else {
                     showResponseModal('failure', `Error!  ${result.error}`);
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('An error occurred while processing your request.');
+                showResponseModal('failure', 'An error occurred while processing your request.');
             } finally {
                 // Hide loading indicator after the action is complete
                 loadingIndicator.style.display = 'none';
@@ -288,7 +297,7 @@
                 }
             } catch (error) {
                 console.error("Error:", error);
-                alert('An error occurred while processing your request.');
+                showResponseModal('failure', 'An error occurred while processing your request.');
             }
         }
 
@@ -317,7 +326,7 @@
                 }
             } catch (error) {
                 console.error("Error:", error);
-                alert('An error occurred while processing your request.');
+                showResponseModal('failure', 'An error occurred while processing your request.');
             }
         }
 
@@ -338,7 +347,7 @@
                 }
             } catch (error) {
                 console.error("Error:", error);
-                alert('An error occurred while processing your request.');
+                showResponseModal('failure', 'An error occurred while processing your request.');
             }
         }
 
@@ -678,10 +687,11 @@
                 });
                 if (!r.ok) {
                     const data = await r.json();
-                    alert('Failed to save order: ' + (data.error || 'Unknown error'));
+                    showResponseModal('failure', 'Failed to save order: ' + (data.error || 'Unknown error'));
                 }
             } catch(e) {
                 console.error('Failed to save plugin order:', e);
+                showResponseModal('failure', 'Failed to save plugin order.');
             }
         }
     </script>

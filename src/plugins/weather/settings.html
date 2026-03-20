@@ -105,154 +105,6 @@
 
 #gpsStatus { font-size:.83em; margin-top:6px; }
 
-/* ── Layout Designer ────────────────────────────────────────────── */
-.zone-block {
-    background: var(--card, #fff);
-    border: 1px solid var(--border, rgba(0,0,0,.10));
-    border-left: 3px solid var(--zone-accent, var(--accent, #2f6f6a));
-    border-radius: 12px;
-    margin-bottom: 8px;
-    padding: 11px 14px;
-    cursor: grab;
-    user-select: none;
-    transition: box-shadow 0.15s, transform 0.1s, border-color 0.15s;
-}
-.zone-block:last-child { margin-bottom: 0; }
-.zone-block.dragging {
-    opacity: 0.55;
-    box-shadow: 0 10px 28px rgba(0,0,0,.18);
-    cursor: grabbing;
-    transform: scale(1.02);
-}
-.zone-block.drag-over {
-    border-color: var(--accent, #2f6f6a);
-    box-shadow: 0 0 0 2px var(--focus, rgba(47,111,106,.2));
-}
-.zone-info {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 9px;
-}
-.zone-drag-handle {
-    color: var(--muted, #aaa);
-    font-size: 15px;
-    cursor: grab;
-    line-height: 1;
-    opacity: 0.6;
-}
-.zone-icon-badge {
-    width: 30px; height: 30px;
-    border-radius: 8px;
-    background: var(--accent-soft, rgba(47,111,106,.12));
-    display: flex; align-items: center; justify-content: center;
-    font-size: 14px; flex-shrink: 0;
-}
-.zone-name {
-    flex: 1;
-    font-weight: 600;
-    font-size: .88rem;
-    color: var(--ink);
-}
-/* CSS toggle switch */
-.zone-toggle { position: relative; display: inline-flex; align-items: center; cursor: pointer; }
-.zone-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
-.zone-toggle-track {
-    width: 36px; height: 20px;
-    background: var(--border-color, #ccc);
-    border-radius: 20px;
-    position: relative;
-    transition: background .2s;
-}
-.zone-toggle input:checked + .zone-toggle-track { background: var(--accent, #2f6f6a); }
-.zone-toggle-track::after {
-    content: '';
-    position: absolute;
-    top: 3px; left: 3px;
-    width: 14px; height: 14px;
-    background: #fff;
-    border-radius: 50%;
-    transition: transform .2s;
-    box-shadow: 0 1px 3px rgba(0,0,0,.2);
-}
-.zone-toggle input:checked + .zone-toggle-track::after { transform: translateX(16px); }
-
-/* pill control buttons */
-.zone-controls {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    align-items: center;
-}
-.zone-control-group {
-    display: flex;
-    gap: 0;
-    border: 1px solid var(--border, rgba(0,0,0,.12));
-    border-radius: 8px;
-    overflow: hidden;
-}
-.zone-size-btn, .zone-style-btn {
-    padding: 4px 10px;
-    border: none;
-    border-right: 1px solid var(--border, rgba(0,0,0,.10));
-    background: transparent;
-    color: var(--muted, #888);
-    font-size: .78rem;
-    font-family: inherit;
-    cursor: pointer;
-    transition: all .15s;
-    line-height: 1.5;
-}
-.zone-size-btn:last-child, .zone-style-btn:last-child { border-right: none; }
-.zone-size-btn:hover, .zone-style-btn:hover { background: var(--accent-soft, rgba(47,111,106,.1)); color: var(--accent); }
-.zone-size-btn.active, .zone-style-btn.active {
-    background: var(--accent, #2f6f6a);
-    color: #fff;
-}
-.zone-border-label {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    font-size: .78rem;
-    color: var(--muted, #888);
-    cursor: pointer;
-    padding: 4px 8px;
-    border: 1px solid var(--border, rgba(0,0,0,.12));
-    border-radius: 8px;
-    transition: background .15s;
-}
-.zone-border-label:hover { background: var(--accent-soft); color: var(--accent); }
-.zone-border-label input[type=checkbox] { accent-color: var(--accent, #2f6f6a); cursor: pointer; }
-.zone-block.zone-disabled { opacity: 0.4; }
-.zone-block.zone-disabled .zone-controls { pointer-events: none; }
-
-/* e-ink preview */
-#einkPreview {
-    background: #f4f1ec;
-    border-radius: 10px;
-    border: 6px solid #222;
-    box-shadow: 0 4px 18px rgba(0,0,0,.25), inset 0 0 0 1px rgba(0,0,0,.08);
-    padding: 6px;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    overflow: hidden;
-}
-.eink-zone-block {
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    padding: 0 8px;
-    font-size: 9px;
-    font-weight: 600;
-    color: rgba(255,255,255,.85);
-    flex-shrink: 0;
-    overflow: hidden;
-    white-space: nowrap;
-    transition: height .2s, border-radius .15s;
-    letter-spacing: .03em;
-}
-
 /* Display composer */
 .composer-layout {
     display: flex;
@@ -695,28 +547,17 @@
     </div>
 </div>
 
-<!-- ── SECTION 5 (inserted before Advanced): Layout Designer ──── -->
-<div class="wx-section" id="layoutDesigner">
-    <p class="wx-section-title">🎨 Layout Designer</p>
-    <div style="display:flex;gap:16px;flex-wrap:wrap;">
-
-        <!-- Left: draggable zone list -->
-        <div style="flex:1;min-width:240px;">
-            <p style="font-size:.8rem;color:var(--muted);margin:0 0 8px;">Drag to reorder zones</p>
-            <div id="zoneList">
-                <!-- zones inserted by JS -->
-            </div>
-        </div>
-
-        <!-- Right: preview canvas -->
-        <div style="flex:0 0 280px;">
-            <p style="font-size:.8rem;color:var(--muted);margin:0 0 8px;">Live preview</p>
-            <div id="einkPreview" style="width:280px;height:168px;">
-                <!-- preview blocks inserted by JS -->
-            </div>
-        </div>
+<!-- ── SECTION 3B: Theme ────────────────────────────────────────── -->
+<div class="wx-section">
+    <p class="wx-section-title">🎨 Theme</p>
+    <div class="wx-row">
+        <label for="weatherBackgroundColor" class="form-label">Background color</label>
+        <input type="color" id="weatherBackgroundColor" name="weatherBackgroundColor" class="color-picker" value="#ffffff">
     </div>
-    <input type="hidden" id="layoutConfig" name="layoutConfig" value="">
+    <div class="wx-row">
+        <label for="weatherTextColor" class="form-label">Text color</label>
+        <input type="color" id="weatherTextColor" name="weatherTextColor" class="color-picker" value="#111111">
+    </div>
 </div>
 
 <!-- ── SECTION 5B: Display Composer ─────────────────────────────── -->
@@ -1094,14 +935,16 @@
             document.getElementById('weatherTimeZone').value = pluginSettings.weatherTimeZone || 'locationTimeZone';
             document.getElementById('partialZone').value = pluginSettings.partialZone || 'all';
             document.getElementById('graphIconStep').value = pluginSettings.graphIconStep || '2';
+            document.getElementById('weatherBackgroundColor').value = pluginSettings.weatherBackgroundColor || '#ffffff';
+            document.getElementById('weatherTextColor').value = pluginSettings.weatherTextColor || '#111111';
             selectedTitle = pluginSettings.titleSelection || 'location';
             weatherProvider = pluginSettings.weatherProvider || 'MeteoSwiss';
             document.getElementById('customTitle').value = pluginSettings.customTitle || '';
         } else {
             // Defaults
             document.getElementById('units').value = 'metric';
-            document.getElementById('displayRefreshTime').checked = true;
-            document.getElementById('displayRefreshTime').value = 'true';
+            document.getElementById('displayRefreshTime').checked = false;
+            document.getElementById('displayRefreshTime').value = 'false';
             document.getElementById('displayMetrics').checked = true;
             document.getElementById('displayMetrics').value = 'true';
             document.getElementById('displayGraph').checked = true;
@@ -1117,6 +960,8 @@
             document.getElementById('moonPhase').value = 'false';
             document.getElementById('weatherTimeZone').value = 'locationTimeZone';
             document.getElementById('partialZone').value = 'all';
+            document.getElementById('weatherBackgroundColor').value = '#ffffff';
+            document.getElementById('weatherTextColor').value = '#111111';
         }
 
         // Auto-detect location via IP if no location is set
@@ -1140,286 +985,13 @@
         if (titleRadio) titleRadio.checked = true;
         updateTitleOptions(weatherProvider);
 
-        // ── Layout Designer ──────────────────────────────────────────────
-        initLayoutEditor();
         initDisplayComposer();
     });
-
-    // ────────────────────────────────────────────────────────────────────
-    // Layout Designer — zone definitions, drag-and-drop, live preview
-    // ────────────────────────────────────────────────────────────────────
-
-    const ZONE_DEFS = [
-        { id: 'header',      label: 'City & Date',      icon: '🏙' },
-        { id: 'temperature', label: 'Temperature',       icon: '🌡' },
-        { id: 'metrics',     label: 'Weather Metrics',   icon: '📊' },
-        { id: 'graph',       label: 'Hourly Graph',      icon: '📈' },
-        { id: 'forecast',    label: 'Forecast',          icon: '📅' }
-    ];
-
-    // Colors for the left-border accent of each zone row
-    const ZONE_ACCENTS = {
-        header:      '#3b82f6',
-        temperature: '#f59e0b',
-        metrics:     '#10b981',
-        graph:       '#8b5cf6',
-        forecast:    '#06b6d4',
-    };
-
-    // Colors for the e-ink preview blocks (neutral, paper-like)
-    const ZONE_COLORS = {
-        header:      'rgba(0,0,0,0.06)',
-        temperature: 'rgba(0,0,0,0.09)',
-        metrics:     'rgba(0,0,0,0.06)',
-        graph:       'rgba(0,0,0,0.06)',
-        forecast:    'rgba(0,0,0,0.06)',
-    };
-
-    const ZONE_HEIGHTS = {
-        compact: '18px',
-        normal:  '34px',
-        large:   '56px',
-    };
-
-    // Internal state — array of zone objects
-    let zones = [];
     let overlayBlocks = [];
     let selectedOverlayBlockId = null;
     let activeOverlayDrag = null;
     let overlayDragFrame = null;
     let composerPreviewUrls = {};
-
-    function defaultZones() {
-        return ZONE_DEFS.map(def => ({
-            id:      def.id,
-            label:   def.label,
-            icon:    def.icon,
-            enabled: true,
-            size:    'normal',
-            style:   'rounded',
-            border:  false
-        }));
-    }
-
-    // ── Build zone block DOM element ─────────────────────────────────────
-    function createZoneBlock(zone) {
-        const block = document.createElement('div');
-        block.className = 'zone-block' + (zone.enabled ? '' : ' zone-disabled');
-        block.setAttribute('data-zone', zone.id);
-        block.draggable = true;
-        block.style.setProperty('--zone-accent', ZONE_ACCENTS[zone.id] || 'var(--accent)');
-
-        block.innerHTML = `
-            <div class="zone-info">
-                <span class="zone-drag-handle">⠿</span>
-                <div class="zone-icon-badge">${zone.icon}</div>
-                <span class="zone-name">${zone.label}</span>
-                <label class="zone-toggle" title="Enable/disable zone">
-                    <input type="checkbox" class="zone-enabled" ${zone.enabled ? 'checked' : ''}>
-                    <span class="zone-toggle-track"></span>
-                </label>
-            </div>
-            <div class="zone-controls">
-                <div class="zone-control-group" title="Size">
-                    <button type="button" class="zone-size-btn ${zone.size === 'compact' ? 'active' : ''}" data-size="compact">S</button>
-                    <button type="button" class="zone-size-btn ${zone.size === 'normal'  ? 'active' : ''}" data-size="normal">M</button>
-                    <button type="button" class="zone-size-btn ${zone.size === 'large'   ? 'active' : ''}" data-size="large">L</button>
-                </div>
-                <div class="zone-control-group" title="Corner style">
-                    <button type="button" class="zone-style-btn ${zone.style === 'rounded' ? 'active' : ''}" data-style="rounded">Rounded</button>
-                    <button type="button" class="zone-style-btn ${zone.style === 'square'  ? 'active' : ''}" data-style="square">Square</button>
-                </div>
-                <label class="zone-border-label" title="Draw border around zone">
-                    <input type="checkbox" class="zone-border" ${zone.border ? 'checked' : ''}> Border
-                </label>
-            </div>
-        `;
-
-        // Enable toggle
-        block.querySelector('.zone-enabled').addEventListener('change', function() {
-            zone.enabled = this.checked;
-            block.classList.toggle('zone-disabled', !zone.enabled);
-            saveLayoutConfig();
-            updatePreview();
-        });
-
-        // Size buttons
-        block.querySelectorAll('.zone-size-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                zone.size = btn.getAttribute('data-size');
-                block.querySelectorAll('.zone-size-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                saveLayoutConfig();
-                updatePreview();
-            });
-        });
-
-        // Style buttons
-        block.querySelectorAll('.zone-style-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                zone.style = btn.getAttribute('data-style');
-                block.querySelectorAll('.zone-style-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                saveLayoutConfig();
-                updatePreview();
-            });
-        });
-
-        // Border checkbox
-        block.querySelector('.zone-border').addEventListener('change', function() {
-            zone.border = this.checked;
-            saveLayoutConfig();
-            updatePreview();
-        });
-
-        // ── Drag-and-drop events ─────────────────────────────────────────
-        let dragSrc = null;
-
-        block.addEventListener('dragstart', function(e) {
-            dragSrc = block;
-            block.classList.add('dragging');
-            e.dataTransfer.effectAllowed = 'move';
-            e.dataTransfer.setData('text/plain', zone.id);
-        });
-
-        block.addEventListener('dragend', function() {
-            block.classList.remove('dragging');
-            document.querySelectorAll('#zoneList .zone-block').forEach(b => b.classList.remove('drag-over'));
-            // Sync zones array to DOM order after drop
-            syncZonesFromDOM();
-            saveLayoutConfig();
-            updatePreview();
-        });
-
-        block.addEventListener('dragover', function(e) {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            if (block !== dragSrc) {
-                document.querySelectorAll('#zoneList .zone-block').forEach(b => b.classList.remove('drag-over'));
-                block.classList.add('drag-over');
-            }
-        });
-
-        block.addEventListener('dragleave', function() {
-            block.classList.remove('drag-over');
-        });
-
-        block.addEventListener('drop', function(e) {
-            e.preventDefault();
-            block.classList.remove('drag-over');
-            const srcId = e.dataTransfer.getData('text/plain');
-            const srcBlock = document.querySelector(`#zoneList .zone-block[data-zone="${srcId}"]`);
-            if (!srcBlock || srcBlock === block) return;
-            const zoneList = document.getElementById('zoneList');
-            // Insert srcBlock before the target block
-            zoneList.insertBefore(srcBlock, block);
-        });
-
-        return block;
-    }
-
-    // ── Sync zones array order to match current DOM order ────────────────
-    function syncZonesFromDOM() {
-        const zoneList = document.getElementById('zoneList');
-        const blocks = Array.from(zoneList.querySelectorAll('.zone-block'));
-        const newZones = [];
-        blocks.forEach(block => {
-            const id = block.getAttribute('data-zone');
-            const z = zones.find(z => z.id === id);
-            if (z) newZones.push(z);
-        });
-        zones = newZones;
-    }
-
-    // ── Create preview block for the e-ink preview panel ────────────────
-    function createPreviewBlock(zone) {
-        const div = document.createElement('div');
-        div.className = 'eink-zone-block';
-        div.style.background    = ZONE_COLORS[zone.id] || 'rgba(0,0,0,0.06)';
-        div.style.borderRadius  = zone.style === 'rounded' ? '4px' : '1px';
-        div.style.border        = zone.border ? '1px solid rgba(0,0,0,.2)' : 'none';
-        div.style.height        = ZONE_HEIGHTS[zone.size] || '34px';
-        div.style.display       = zone.enabled ? 'flex' : 'none';
-        div.style.color         = 'rgba(0,0,0,0.55)';
-        div.textContent         = zone.label;
-        return div;
-    }
-
-    // ── Refresh the live preview panel ───────────────────────────────────
-    function updatePreview() {
-        const preview = document.getElementById('einkPreview');
-        if (!preview) return;
-        preview.innerHTML = '';
-        zones.forEach(zone => {
-            preview.appendChild(createPreviewBlock(zone));
-        });
-    }
-
-    // ── Serialize zones to JSON and write to hidden input ────────────────
-    function saveLayoutConfig() {
-        const input = document.getElementById('layoutConfig');
-        if (!input) return;
-        const data = zones.map(z => ({
-            id:      z.id,
-            label:   z.label,
-            enabled: z.enabled,
-            size:    z.size,
-            style:   z.style,
-            border:  z.border
-        }));
-        input.value = JSON.stringify(data);
-    }
-
-    // ── Initialise the editor ─────────────────────────────────────────────
-    function initLayoutEditor() {
-        const zoneList = document.getElementById('zoneList');
-        if (!zoneList) return;
-
-        // Try to load from saved settings; fall back to defaults
-        let savedZones = null;
-        if (typeof pluginSettings !== 'undefined' && pluginSettings && pluginSettings.layoutConfig) {
-            try {
-                const parsed = JSON.parse(pluginSettings.layoutConfig);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    savedZones = parsed;
-                }
-            } catch(e) { /* ignore parse errors */ }
-        }
-
-        if (savedZones) {
-            // Merge saved data with ZONE_DEFS to restore icons/labels and handle new zones
-            const defsMap = {};
-            ZONE_DEFS.forEach(d => { defsMap[d.id] = d; });
-            zones = savedZones.map(s => ({
-                id:      s.id,
-                label:   defsMap[s.id] ? defsMap[s.id].label : s.label,
-                icon:    defsMap[s.id] ? defsMap[s.id].icon  : '❓',
-                enabled: s.enabled !== false,
-                size:    s.size  || 'normal',
-                style:   s.style || 'rounded',
-                border:  !!s.border
-            }));
-            // Append any ZONE_DEFS entries not in saved config (future new zones)
-            ZONE_DEFS.forEach(def => {
-                if (!zones.find(z => z.id === def.id)) {
-                    zones.push({ id: def.id, label: def.label, icon: def.icon,
-                                 enabled: true, size: 'normal', style: 'rounded', border: false });
-                }
-            });
-        } else {
-            zones = defaultZones();
-        }
-
-        // Render zone blocks
-        zoneList.innerHTML = '';
-        zones.forEach(zone => {
-            zoneList.appendChild(createZoneBlock(zone));
-        });
-
-        // Initial preview render and config save
-        updatePreview();
-        saveLayoutConfig();
-    }
 
     function createOverlayId() {
         return `overlay_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;

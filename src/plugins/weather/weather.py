@@ -218,6 +218,98 @@ def _sanitize_color(value: str | None, default: str) -> str:
     return default
 
 
+def _hex_to_rgb(value: str) -> tuple[int, int, int]:
+    """Convert a hex color into an RGB tuple."""
+    cleaned = value.lstrip("#")
+    if len(cleaned) == 3:
+        cleaned = "".join(ch * 2 for ch in cleaned)
+    return tuple(int(cleaned[index:index + 2], 16) for index in (0, 2, 4))
+
+
+def _rgb_to_hex(rgb: tuple[int, int, int]) -> str:
+    """Convert an RGB tuple back to a hex color."""
+    return "#{:02x}{:02x}{:02x}".format(*rgb)
+
+
+def _mix_hex(color_a: str, color_b: str, weight_a: float) -> str:
+    """Mix two hex colors with a given weight for the first color."""
+    weight = max(0.0, min(1.0, float(weight_a)))
+    rgb_a = _hex_to_rgb(color_a)
+    rgb_b = _hex_to_rgb(color_b)
+    mixed = tuple(
+        round((channel_a * weight) + (channel_b * (1 - weight)))
+        for channel_a, channel_b in zip(rgb_a, rgb_b)
+    )
+    return _rgb_to_hex(mixed)
+
+
+def _relative_luminance(color: str) -> float:
+    """Return WCAG relative luminance for a hex color."""
+    def _channel(value: int) -> float:
+        normalized = value / 255
+        if normalized <= 0.03928:
+            return normalized / 12.92
+        return ((normalized + 0.055) / 1.055) ** 2.4
+
+    red, green, blue = _hex_to_rgb(color)
+    r = _channel(red)
+    g = _channel(green)
+    b = _channel(blue)
+    return (0.2126 * r) + (0.7152 * g) + (0.0722 * b)
+
+
+def _contrast_ratio(color_a: str, color_b: str) -> float:
+    """Return the contrast ratio between two hex colors."""
+    luminance_a = _relative_luminance(color_a)
+    luminance_b = _relative_luminance(color_b)
+    lighter = max(luminance_a, luminance_b)
+    darker = min(luminance_a, luminance_b)
+    return (lighter + 0.05) / (darker + 0.05)
+
+
+def _resolve_theme_colors(plugin_settings: dict) -> dict:
+    """Build a small derived theme for the weather template."""
+    paper = _sanitize_color(plugin_settings.get("weatherBackgroundColor"), "#ffffff")
+    requested_ink = _sanitize_color(plugin_settings.get("weatherTextColor"), "#111111")
+    is_dark_paper = _relative_luminance(paper) < 0.32
+    fallback_ink = "#f5f3ef" if is_dark_paper else "#243247"
+    ink = requested_ink if _contrast_ratio(paper, requested_ink) >= 3.6 else fallback_ink
+
+    if is_dark_paper:
+        paper_soft = _mix_hex("#ffffff", paper, 0.12)
+        line = _mix_hex("#ffffff", paper, 0.22)
+        line_soft = _mix_hex("#ffffff", paper, 0.14)
+        panel_soft = _mix_hex("#ffffff", paper, 0.18)
+        panel = _mix_hex("#ffffff", paper, 0.14)
+        panel_strong = _mix_hex("#ffffff", paper, 0.24)
+        icon_badge = _mix_hex("#ffffff", paper, 0.72)
+        icon_badge_line = _mix_hex("#ffffff", paper, 0.5)
+    else:
+        paper_soft = _mix_hex(paper, "#edf3f9", 0.78)
+        line = _mix_hex(ink, paper, 0.16)
+        line_soft = _mix_hex(ink, paper, 0.08)
+        panel_soft = _mix_hex(paper, ink, 0.96)
+        panel = _mix_hex(paper, ink, 0.93)
+        panel_strong = _mix_hex(paper, ink, 0.88)
+        icon_badge = _mix_hex("#ffffff", paper, 0.92)
+        icon_badge_line = _mix_hex(ink, paper, 0.14)
+
+    return {
+        "theme_paper": paper,
+        "theme_paper_soft": paper_soft,
+        "theme_ink": ink,
+        "theme_ink_soft": _mix_hex(ink, paper, 0.68),
+        "theme_ink_muted": _mix_hex(ink, paper, 0.48),
+        "theme_line": line,
+        "theme_line_soft": line_soft,
+        "theme_panel_soft": panel_soft,
+        "theme_panel": panel,
+        "theme_panel_strong": panel_strong,
+        "theme_icon_badge": icon_badge,
+        "theme_icon_badge_line": icon_badge_line,
+    }
+
+
 def _parse_custom_overlay_blocks(plugin_settings: dict) -> list[dict]:
     """Parse user-authored text/image overlay blocks for the weather display."""
     raw_blocks = _safe_json_list(plugin_settings.get("customOverlayConfig"))
@@ -274,8 +366,18 @@ def _parse_custom_overlay_blocks(plugin_settings: dict) -> list[dict]:
 # Helper: simple SVG bar-chart for hourly temperatures
 # ---------------------------------------------------------------------------
 
-def _build_hourly_svg(hours: list[dict], width: int = 780, height: int = 92) -> str:
+def _build_hourly_svg(hours: list[dict], width: int = 780, height: int = 92, palette: dict | None = None) -> str:
     """Build a soft hourly temperature area chart from a list of {time, temp} dicts."""
+    palette = palette or {}
+    theme_paper = palette.get("theme_paper", "#fffdfa")
+    theme_ink = palette.get("theme_ink", "#54617a")
+    theme_ink_soft = palette.get("theme_ink_soft", "#6f7f94")
+    theme_line = palette.get("theme_line", "#d6e0ec")
+    theme_line_soft = palette.get("theme_line_soft", "#edf2f7")
+    chart_line = _mix_hex(theme_ink, theme_paper, 0.58)
+    chart_label = _mix_hex(theme_ink, theme_paper, 0.82)
+    chart_value = _mix_hex(theme_ink, theme_paper, 0.92)
+
     clean_hours = []
     for hour in hours:
         temp = hour.get("temp")
@@ -297,7 +399,7 @@ def _build_hourly_svg(hours: list[dict], width: int = 780, height: int = 92) -> 
     pad_left = 12
     pad_right = 12
     pad_top = 8
-    pad_bottom = 22
+    pad_bottom = 26
     plot_width = width - pad_left - pad_right
     plot_height = height - pad_top - pad_bottom
     spread = hi - lo
@@ -323,16 +425,16 @@ def _build_hourly_svg(hours: list[dict], width: int = 780, height: int = 92) -> 
         y = pad_top + (plot_height * fraction)
         guide_lines.append(
             f'<line x1="{pad_left}" y1="{y:.1f}" x2="{width - pad_right}" y2="{y:.1f}" '
-            'stroke="#d9e2ed" stroke-width="1" stroke-dasharray="3 4"/>'
+            f'stroke="{theme_line}" stroke-width="1" stroke-dasharray="3 4"/>'
         )
 
     labels = []
-    step = max(1, len(points) // 8)
+    step = max(1, len(points) // 6)
     for index, (x, _, hour) in enumerate(points):
         if index == 0 or index == len(points) - 1 or index % step == 0:
             labels.append(
-                f'<text x="{x:.1f}" y="{height - 4}" font-size="8" '
-                f'text-anchor="middle" fill="#7e8ea8">{hour["time"]}</text>'
+                f'<text x="{x:.1f}" y="{height - 6}" font-size="9.5" font-weight="700" '
+                f'text-anchor="middle" fill="{chart_label}">{hour["time"]}</text>'
             )
 
     dots = []
@@ -341,13 +443,13 @@ def _build_hourly_svg(hours: list[dict], width: int = 780, height: int = 92) -> 
         fill = "#f0a85c" if index == 0 else "#8fa4c4"
         dots.append(
             f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{radius}" fill="{fill}" '
-            'stroke="#ffffff" stroke-width="1"/>'
+            f'stroke="{theme_paper}" stroke-width="1"/>'
         )
 
     temp_labels = [
-        f'<text x="{pad_left}" y="{pad_top - 1}" font-size="9" fill="#7e8ea8">{round(hi)}°</text>',
+        f'<text x="{pad_left}" y="{pad_top - 1}" font-size="10" font-weight="700" fill="{chart_value}">{round(hi)}°</text>',
         (
-            f'<text x="{pad_left}" y="{baseline_y - 2}" font-size="9" fill="#7e8ea8">'
+            f'<text x="{pad_left}" y="{baseline_y - 3}" font-size="10" font-weight="700" fill="{chart_value}">'
             f'{round(lo)}°</text>'
         ),
     ]
@@ -358,12 +460,12 @@ def _build_hourly_svg(hours: list[dict], width: int = 780, height: int = 92) -> 
         "<defs>"
         '<linearGradient id="wxArea" x1="0" y1="0" x2="0" y2="1">'
         '<stop offset="0%" stop-color="#f3c17b" stop-opacity="0.28"/>'
-        '<stop offset="100%" stop-color="#d7e5f5" stop-opacity="0.12"/>'
+        f'<stop offset="100%" stop-color="{theme_line_soft}" stop-opacity="0.16"/>'
         "</linearGradient>"
         "</defs>"
         f'<path d="{area_path}" fill="url(#wxArea)"/>'
         + "".join(guide_lines)
-        + f'<path d="{line_path}" fill="none" stroke="#8fa4c4" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>'
+        + f'<path d="{line_path}" fill="none" stroke="{chart_line}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>'
         + "".join(dots)
         + "".join(temp_labels)
         + "".join(labels)
@@ -600,6 +702,7 @@ def _parse_meteoswiss(
     tz           = _safe_timezone(timezone_name)
     units        = plugin_settings.get("units", "metric")
     fallback     = supplemental_ctx or {}
+    theme_palette = _resolve_theme_colors(plugin_settings)
 
     temp      = cur.get("temperature", "—")
     icon_code = cur.get("icon", 1)
@@ -681,7 +784,7 @@ def _parse_meteoswiss(
         "moon_phase_icon":     moon_icon,
         "moon_phase":          moon_name,
         "moon_phase_asset":    moon_asset,
-        "hourly_graph_svg":    _build_hourly_svg(hourly_list) if hourly_list else fallback.get("hourly_graph_svg", ""),
+        "hourly_graph_svg":    _build_hourly_svg(hourly_list, palette=theme_palette) if hourly_list else fallback.get("hourly_graph_svg", ""),
         "forecast_days":       forecast_days,
         "current_date":        _format_display_date(now),
         "current_time":        now.strftime("%H:%M"),
@@ -749,6 +852,7 @@ def _parse_open_meteo(data: dict, plugin_settings: dict, timezone_name: str) -> 
     source_timezone = data.get("timezone") or timezone_name
     tz = _safe_timezone(timezone_name)
     units = plugin_settings.get("units", "metric")
+    theme_palette = _resolve_theme_colors(plugin_settings)
 
     temp     = cur.get("temperature_2m", "—")
     feels    = cur.get("apparent_temperature", "—")
@@ -784,6 +888,7 @@ def _parse_open_meteo(data: dict, plugin_settings: dict, timezone_name: str) -> 
         except Exception:
             day_name = d_dates[i] if i < len(d_dates) else "—"
         wmo = d_codes[i] if i < len(d_codes) else 0
+        msw_code = _wmo_to_msw_icon_code(wmo)
         high = d_hi[i] if i < len(d_hi) else "—"
         low = d_lo[i] if i < len(d_lo) else "—"
         if units == "standard":
@@ -800,11 +905,12 @@ def _parse_open_meteo(data: dict, plugin_settings: dict, timezone_name: str) -> 
                 low = low
         forecast_days.append({
             "day":         day_name,
-            "description": _wmo_desc(wmo),
+            "description": _msw_desc(msw_code),
             "temp_max":    high,
             "temp_min":    low,
-            "icon_path":   _wmo_icon_path(wmo),
+            "icon_path":   _msw_icon_path(msw_code),
             "wmo_code":    wmo,
+            "msw_icon_code": msw_code,
         })
 
     sunrise = _convert_iso_time(d_sunrise[0], source_timezone, timezone_name) if d_sunrise else "—"
@@ -814,12 +920,13 @@ def _parse_open_meteo(data: dict, plugin_settings: dict, timezone_name: str) -> 
     now = datetime.datetime.now(tz)
     moon_icon, moon_name = _moon_phase(now.date())
     moon_asset = _moon_phase_asset(moon_name)
+    current_msw_code = _wmo_to_msw_icon_code(code)
 
     return {
         "temperature":         _convert_temperature(temp, units) if units == "standard" else (round(temp) if isinstance(temp, float) else temp),
         "feels_like":          _convert_temperature(feels, units) if units == "standard" else (round(feels) if isinstance(feels, float) else feels),
-        "weather_description": _wmo_desc(code),
-        "weather_icon_path":   _wmo_icon_path(code),
+        "weather_description": _msw_desc(current_msw_code),
+        "weather_icon_path":   _msw_icon_path(current_msw_code),
         "humidity":            humidity,
         "wind_speed":          round(wind)     if isinstance(wind, float)     else wind,
         "pressure":            round(pressure) if isinstance(pressure, float) else pressure,
@@ -833,12 +940,13 @@ def _parse_open_meteo(data: dict, plugin_settings: dict, timezone_name: str) -> 
         "moon_phase_icon":     moon_icon,
         "moon_phase":          moon_name,
         "moon_phase_asset":    moon_asset,
-        "hourly_graph_svg":    _build_hourly_svg(hourly_list),
+        "hourly_graph_svg":    _build_hourly_svg(hourly_list, palette=theme_palette),
         "forecast_days":       forecast_days,
         "current_date":        _format_display_date(now),
         "current_time":        now.strftime("%H:%M"),
         "refresh_time":        now.strftime("%H:%M"),
         "wmo_code":            code,
+        "msw_icon_code":       current_msw_code,
         "temperature_unit_symbol": _temperature_unit_symbol(units),
         "wind_unit":           "mph" if units == "imperial" else "km/h",
         "rain_unit":           "in" if units == "imperial" else "mm",
@@ -893,9 +1001,8 @@ class WeatherPlugin(BasePlugin):
             raw = _fetch_meteoswiss(lat, lon)
             display_timezone = _resolve_display_timezone(provider, raw, plugin_settings, device_config)
             supplemental_ctx = None
-            if units != "metric" or not raw.get("forecast") or not raw.get("graph"):
-                supplemental_raw = _fetch_open_meteo(lat, lon, units)
-                supplemental_ctx = _parse_open_meteo(supplemental_raw, plugin_settings, display_timezone)
+            supplemental_raw = _fetch_open_meteo(lat, lon, units)
+            supplemental_ctx = _parse_open_meteo(supplemental_raw, plugin_settings, display_timezone)
             ctx = _parse_meteoswiss(raw, plugin_settings, display_timezone, supplemental_ctx=supplemental_ctx)
             location_label = location_label or raw.get("_location_label")
         elif provider == "OpenMeteo":
@@ -918,6 +1025,7 @@ class WeatherPlugin(BasePlugin):
         ctx["plugin_settings"] = plugin_settings
         ctx["source_name"] = "MeteoSwiss" if provider == "MeteoSwiss" else "Open-Meteo"
         ctx["custom_overlay_blocks"] = _parse_custom_overlay_blocks(plugin_settings)
+        ctx.update(_resolve_theme_colors(plugin_settings))
 
         # Display dimensions from device config
         try:

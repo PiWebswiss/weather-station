@@ -627,6 +627,7 @@ body.live-watch-body--embed {
 <script>
 const DEVICE_NAME = {{ (config.name or 'E-InkPi') | tojson }};
 const DEVICE_TIMEZONE = {{ (config.timezone or 'UTC') | tojson }};
+const SERVER_CLOCK = {{ server_clock | tojson }};
 const STATUS_URL = {{ url_for('main.get_status') | tojson }};
 const STORAGE_KEYS = {
   face: 'e-inkpi-live-face',
@@ -639,6 +640,8 @@ const FACE_DESCRIPTIONS = {
   digital: 'Digital mode turns the watch into a crisp bedside-style clock with large numerals and timezone context.',
   word: 'Word mode spells out the time for a more decorative display while keeping the exact digital readout below.'
 };
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 function safeStorageGet(key) {
   try {
@@ -683,6 +686,10 @@ let statusTimer = null;
 let canvasSize = 320;
 let resizeRaf = 0;
 let resizeObserver = null;
+let serverClockEpochMs = Number(SERVER_CLOCK.timestamp_ms || Date.now());
+let serverClockOffsetMinutes = Number(SERVER_CLOCK.offset_minutes || 0);
+let serverClockTimezone = SERVER_CLOCK.timezone || DEVICE_TIMEZONE || 'UTC';
+let clientMonotonicStart = 0;
 
 const clockCanvas = document.getElementById('clockCanvas');
 const ctx = clockCanvas.getContext('2d');
@@ -705,32 +712,45 @@ const themeBtn = document.getElementById('themeBtn');
 const secondsBtn = document.getElementById('secondsBtn');
 const faceButtons = Array.from(document.querySelectorAll('[data-face]'));
 
-const formatterOptions = {
-  weekday: 'long',
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-  second: '2-digit',
-  hour12: false
-};
-
-function makeFormatter(timeZone) {
-  try {
-    return new Intl.DateTimeFormat('en-GB', { ...formatterOptions, timeZone });
-  } catch (error) {
-    return new Intl.DateTimeFormat('en-GB', formatterOptions);
-  }
-}
-
-const zonedFormatter = makeFormatter(DEVICE_TIMEZONE);
-const resolvedTimeZone = zonedFormatter.resolvedOptions().timeZone || DEVICE_TIMEZONE || 'Local';
-timezoneValue.textContent = resolvedTimeZone;
-digitalZone.textContent = resolvedTimeZone;
-
 function pad(value) {
   return String(value).padStart(2, '0');
+}
+
+function getMonotonicNow() {
+  if (typeof window !== 'undefined' && window.performance && typeof window.performance.now === 'function') {
+    return window.performance.now();
+  }
+  return Date.now();
+}
+
+function syncServerClock(clock) {
+  if (!clock || typeof clock !== 'object') {
+    return;
+  }
+
+  const parsedEpochMs = Number(clock.timestamp_ms);
+  const parsedOffsetMinutes = Number(clock.offset_minutes);
+
+  if (!Number.isNaN(parsedEpochMs) && parsedEpochMs > 0) {
+    serverClockEpochMs = parsedEpochMs;
+    clientMonotonicStart = getMonotonicNow();
+  }
+
+  if (!Number.isNaN(parsedOffsetMinutes)) {
+    serverClockOffsetMinutes = parsedOffsetMinutes;
+  }
+
+  serverClockTimezone = clock.timezone || DEVICE_TIMEZONE || 'UTC';
+  timezoneValue.textContent = serverClockTimezone;
+  digitalZone.textContent = serverClockTimezone;
+}
+
+function getServerNow() {
+  return new Date(serverClockEpochMs + Math.max(0, getMonotonicNow() - clientMonotonicStart));
+}
+
+function getZonedNow() {
+  return new Date(getServerNow().getTime() + (serverClockOffsetMinutes * 60000));
 }
 
 function formatCountdown(totalSeconds) {
@@ -758,23 +778,37 @@ function humanizePlugin(value) {
     .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-function getClockParts(now = new Date()) {
-  const parts = {};
-  for (const part of zonedFormatter.formatToParts(now)) {
-    if (part.type !== 'literal') {
-      parts[part.type] = part.value;
-    }
+function getClockParts(now = getZonedNow()) {
+  return {
+    hour: now.getUTCHours(),
+    minute: now.getUTCMinutes(),
+    second: now.getUTCSeconds(),
+    weekday: WEEKDAY_NAMES[now.getUTCDay()] || '',
+    day: now.getUTCDate(),
+    month: MONTH_NAMES[now.getUTCMonth()] || '',
+    year: now.getUTCFullYear()
+  };
+}
+
+function formatIsoDisplay(isoValue) {
+  if (!isoValue) {
+    return '—';
   }
 
-  return {
-    hour: Number(parts.hour || 0),
-    minute: Number(parts.minute || 0),
-    second: Number(parts.second || 0),
-    weekday: parts.weekday || '',
-    day: Number(parts.day || 0),
-    month: parts.month || '',
-    year: Number(parts.year || 0)
-  };
+  const timestampMs = Date.parse(isoValue);
+  if (Number.isNaN(timestampMs)) {
+    return isoValue;
+  }
+
+  const offsetMatch = isoValue.match(/([+-])(\d{2}):?(\d{2})$/);
+  let offsetMinutes = 0;
+  if (offsetMatch) {
+    const sign = offsetMatch[1] === '-' ? -1 : 1;
+    offsetMinutes = sign * ((Number(offsetMatch[2]) * 60) + Number(offsetMatch[3]));
+  }
+
+  const zonedDate = new Date(timestampMs + (offsetMinutes * 60000));
+  return `${WEEKDAY_NAMES[zonedDate.getUTCDay()]}, ${zonedDate.getUTCDate()} ${MONTH_NAMES[zonedDate.getUTCMonth()]} ${zonedDate.getUTCFullYear()} ${pad(zonedDate.getUTCHours())}:${pad(zonedDate.getUTCMinutes())}`;
 }
 
 function resizeCanvas() {
@@ -998,7 +1032,8 @@ function updateControlLabels() {
 }
 
 function renderWatch() {
-  const parts = getClockParts();
+  const now = getZonedNow();
+  const parts = getClockParts(now);
   updateReadout(parts);
 
   if (face === 'analog') {
@@ -1007,10 +1042,9 @@ function renderWatch() {
     drawWordClock(parts);
   }
 
-  const now = new Date();
   const delay = showSeconds
-    ? (1000 - (Date.now() % 1000)) + 18
-    : (((60 - now.getSeconds()) * 1000) - now.getMilliseconds()) + 18;
+    ? (1000 - now.getUTCMilliseconds()) + 18
+    : (((60 - now.getUTCSeconds()) * 1000) - now.getUTCMilliseconds()) + 18;
   tickTimer = window.setTimeout(renderWatch, delay);
 }
 
@@ -1043,11 +1077,16 @@ async function fetchStatus() {
     }
 
     const data = await response.json();
+    syncServerClock({
+      timestamp_ms: data.server_time_epoch_ms,
+      offset_minutes: data.server_time_offset_minutes,
+      timezone: data.server_timezone
+    });
     refreshValue.textContent = formatCountdown(data.seconds_until_refresh);
     pluginValue.textContent = humanizePlugin(data.current_plugin_instance || data.current_plugin_id);
     playlistValue.textContent = data.active_playlist || 'No active playlist';
     watchFooter.textContent = data.last_refresh_time
-      ? `Last display refresh: ${new Date(data.last_refresh_time).toLocaleString()}`
+      ? `Last display refresh: ${formatIsoDisplay(data.last_refresh_time)}`
       : 'The display has not refreshed yet.';
   } catch (error) {
     watchFooter.textContent = 'Status sync is temporarily unavailable.';
@@ -1108,6 +1147,7 @@ window.addEventListener('beforeunload', () => {
 });
 
 buildWordClock();
+syncServerClock(SERVER_CLOCK);
 updateControlLabels();
 applyFaceVisibility();
 resizeCanvas();

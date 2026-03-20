@@ -2,8 +2,8 @@
 
 # =============================================================================
 # Script Name: install.sh
-# Description: This script automates the installation of E-InkPi and creation of
-#              the E-InkPi service.
+# Description: This script automates the installation of InkyPi and creation of
+#              the InkyPi service.
 #
 # Usage: ./install.sh [-W <waveshare_device>]
 #        -W <waveshare_device> (optional) Install for a Waveshare device,
@@ -27,7 +27,7 @@ while [ -h "$SOURCE" ]; do # resolve $SOURCE until the file is no longer a symli
 done
 SCRIPT_DIR=$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )
 
-APPNAME="e-inkpi"
+APPNAME="inkypi"
 INSTALL_PATH="/usr/local/$APPNAME"
 SRC_PATH="$SCRIPT_DIR/../src"
 BINPATH="/usr/local/bin"
@@ -242,14 +242,37 @@ install_executable() {
 install_config() {
   CONFIG_BASE_DIR="$SCRIPT_DIR/config_base"
   CONFIG_DIR="$SRC_PATH/config"
+  DEVICE_CONFIG_FILE="$CONFIG_DIR/device.json"
   echo "Copying config files to $CONFIG_DIR"
 
   # Check and copy device.config if it doesn't exist
-  if [ ! -f "$CONFIG_DIR/device.json" ]; then
+  if [ ! -f "$DEVICE_CONFIG_FILE" ]; then
     cp "$CONFIG_BASE_DIR/device.json" "$CONFIG_DIR/"
     show_loader "\tCopying device.config to $CONFIG_DIR"
   else
     echo_success "\tdevice.json already exists in $CONFIG_DIR"
+  fi
+
+  if python3 - "$DEVICE_CONFIG_FILE" <<'PY'
+import json
+import sys
+
+config_path = sys.argv[1]
+
+with open(config_path, "r", encoding="utf-8") as config_file:
+    config = json.load(config_file)
+
+config["startup"] = True
+
+with open(config_path, "w", encoding="utf-8") as config_file:
+    json.dump(config, config_file, indent=4)
+    config_file.write("\n")
+PY
+  then
+    echo_success "\tEnabled startup welcome screen in $DEVICE_CONFIG_FILE"
+  else
+    echo_error "ERROR: Failed to enable startup welcome screen in $DEVICE_CONFIG_FILE"
+    exit 1
   fi
 }
 
@@ -352,7 +375,7 @@ ask_for_reboot() {
   echo_header "$(echo_success "${APPNAME^^} Installation Complete!")"
   echo_header "[•] A reboot of your Raspberry Pi is required for the changes to take effect"
   echo_header "[•] After your Pi is rebooted, you can access the web UI by going to $(echo_blue "'$hostname.local'") or $(echo_blue "'$ip_address'") in your browser."
-  echo_header "[•] If you encounter any issues or have suggestions, please submit them here: https://github.com/fatihak/E-InkPi/issues"
+  echo_header "[•] If you encounter any issues or have suggestions, please submit them here: https://github.com/PiWebswiss/weather-station/issues"
 
   read -p "Would you like to restart your Raspberry Pi now? [Y/N] " userInput
   userInput="${userInput^^}"

@@ -105,46 +105,110 @@ def get_font_path(font_name):
     return resolve_path(os.path.join("static", "fonts", FONTS[font_name]))
 
 def generate_startup_image(dimensions=(800,480)):
-    bg_color = (245, 242, 235)   # warm off-white
-    text_color = (30, 30, 30)
-    accent_color = (80, 80, 80)
+    bg_color = (244, 239, 232)
+    panel_color = (255, 252, 247)
+    border_color = (217, 207, 195)
+    text_color = (31, 27, 22)
+    accent_color = (45, 105, 98)
+    muted_color = (102, 95, 86)
     width, height = dimensions
 
     hostname = socket.gethostname()
-    ip = get_ip_address()
+    try:
+        ip = get_ip_address()
+    except OSError:
+        ip = None
+
+    try:
+        wifi_name = get_wifi_name()
+    except Exception:
+        wifi_name = None
+
+    local_url = f"http://{hostname}.local"
+    ip_url = f"http://{ip}" if ip else "IP address unavailable"
 
     image = Image.new("RGBA", dimensions, bg_color)
     image_draw = ImageDraw.Draw(image)
 
-    # Greeting title
-    title_font_size = int(width * 0.13)
+    outer_margin_x = int(width * 0.08)
+    outer_margin_y = int(height * 0.10)
+    panel_box = (
+        outer_margin_x,
+        outer_margin_y,
+        width - outer_margin_x,
+        height - outer_margin_y,
+    )
+    corner_radius = max(22, int(min(width, height) * 0.045))
+    stroke_width = max(2, width // 360)
+    image_draw.rounded_rectangle(
+        panel_box,
+        radius=corner_radius,
+        fill=panel_color,
+        outline=border_color,
+        width=stroke_width,
+    )
+
+    title_font_size = int(width * 0.085)
+    subtitle_font_size = int(width * 0.032)
+    label_font_size = int(width * 0.018)
+    url_font_size = int(width * 0.029)
+    footer_font_size = int(width * 0.022)
+
     image_draw.text(
-        (width / 2, height * 0.42),
-        "Hello there!",
+        (width / 2, height * 0.24),
+        "Welcome to InkyPi",
         anchor="mm",
         fill=text_color,
         font=get_font("Jost", title_font_size, "bold"),
     )
 
-    # Tagline
-    tagline_font_size = int(width * 0.034)
     image_draw.text(
-        (width / 2, height * 0.58),
-        "Your display is ready.",
+        (width / 2, height * 0.34),
+        "Your display is ready. Open the web interface from a browser on the same network.",
         anchor="mm",
-        fill=accent_color,
-        font=get_font("Jost", tagline_font_size),
+        fill=muted_color,
+        font=get_font("Jost", subtitle_font_size),
     )
 
-    # Access URL
-    url_font_size = int(width * 0.030)
-    url_text = f"Visit http://{hostname}.local  or  http://{ip}"
+    box_left = int(width * 0.16)
+    box_right = int(width * 0.84)
+    box_height = int(height * 0.12)
+    first_box_top = int(height * 0.43)
+    second_box_top = int(height * 0.60)
+
+    def draw_link_box(top, label, value):
+        image_draw.text(
+            (box_left, top - int(height * 0.028)),
+            label,
+            anchor="ls",
+            fill=muted_color,
+            font=get_font("Jost", label_font_size, "bold"),
+        )
+        image_draw.rounded_rectangle(
+            (box_left, top, box_right, top + box_height),
+            radius=max(18, int(height * 0.03)),
+            fill=bg_color,
+            outline=border_color,
+            width=stroke_width,
+        )
+        image_draw.text(
+            ((box_left + box_right) / 2, top + box_height / 2),
+            value,
+            anchor="mm",
+            fill=accent_color,
+            font=get_font("Jost", url_font_size, "bold"),
+        )
+
+    draw_link_box(first_box_top, "LOCAL NAME", local_url)
+    draw_link_box(second_box_top, "IP ADDRESS", ip_url)
+
+    footer_text = f"Wi-Fi: {wifi_name}" if wifi_name else "Tip: if .local does not resolve, use the IP address above."
     image_draw.text(
-        (width / 2, height * 0.72),
-        url_text,
+        (width / 2, height * 0.84),
+        footer_text,
         anchor="mm",
-        fill=accent_color,
-        font=get_font("Jost", url_font_size),
+        fill=muted_color,
+        font=get_font("Jost", footer_font_size),
     )
 
     return image

@@ -11,15 +11,18 @@
 }
 
 :root {
-  --paper: #fbfcff;
-  --paper-soft: #f4f7fb;
-  --ink: #4e5e7d;
-  --ink-soft: #7786a4;
-  --ink-muted: #92a0b7;
-  --line: #dbe4ef;
-  --line-soft: #e8eef5;
-  --panel: rgba(255, 255, 255, 0.92);
-  --panel-strong: rgba(255, 255, 255, 0.98);
+  --paper: {{ theme_paper | default('#fffdfa') }};
+  --paper-soft: {{ theme_paper_soft | default('#f7f9fc') }};
+  --ink: {{ theme_ink | default('#54617a') }};
+  --ink-soft: {{ theme_ink_soft | default('#7d88a0') }};
+  --ink-muted: {{ theme_ink_muted | default('#97a3b6') }};
+  --line: {{ theme_line | default('#d6e0ec') }};
+  --line-soft: {{ theme_line_soft | default('#edf2f7') }};
+  --panel-soft: {{ theme_panel_soft | default('#f8fafc') }};
+  --panel: {{ theme_panel | default('#f3f6fa') }};
+  --panel-strong: {{ theme_panel_strong | default('#edf2f7') }};
+  --icon-badge: {{ theme_icon_badge | default('#ffffff') }};
+  --icon-badge-line: {{ theme_icon_badge_line | default('#dbe4ef') }};
   --sky: #dce8f5;
   --sky-deep: #95a9c8;
   --sun: #f2bf77;
@@ -38,22 +41,30 @@ body {
   position: relative;
   width: 100%;
   height: 100%;
-  padding: 20px 22px 16px;
+  padding: 18px 16px 14px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
   background:
-    radial-gradient(circle at 50% -8%, rgba(149, 169, 200, 0.18), transparent 42%),
+    radial-gradient(circle at 50% -16%, rgba(149, 169, 200, 0.12), transparent 38%),
     linear-gradient(180deg, var(--paper), var(--paper-soft));
+}
+
+.weather-root::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 1px solid var(--line);
+  pointer-events: none;
 }
 
 .header {
   text-align: center;
-  padding-bottom: 2px;
+  padding-bottom: 0;
 }
 
 .title {
-  font-size: 31px;
+  font-size: 29px;
   font-weight: 800;
   letter-spacing: 0.02em;
   color: var(--ink);
@@ -64,44 +75,24 @@ body {
 }
 
 .date-line {
-  margin-top: 4px;
-  font-size: 15px;
+  margin-top: 2px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--ink-soft);
   letter-spacing: 0.02em;
 }
 
-.meta-strip {
-  margin-top: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.meta-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 22px;
-  padding: 0 10px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.78);
-  color: var(--ink-muted);
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 .current-section {
   display: grid;
-  grid-template-columns: 220px 176px minmax(0, 1fr);
-  gap: 10px 14px;
+  grid-template-columns: 218px 168px minmax(0, 1fr);
+  gap: 6px 14px;
   align-items: center;
-  min-height: 176px;
+  min-height: 154px;
+  padding: 10px 14px 8px;
+  border-radius: 24px;
+  border: 1.2px solid var(--line);
+  background: linear-gradient(180deg, var(--panel-soft), var(--panel));
+  box-shadow: inset 0 0 0 1px var(--line-soft);
 }
 
 .current-section.no-stats {
@@ -112,16 +103,12 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 168px;
-  border-radius: 24px;
-  background:
-    radial-gradient(circle at 50% 22%, rgba(220, 232, 245, 0.65), transparent 58%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(245, 248, 252, 0.82));
+  min-height: 136px;
 }
 
 .art-panel img {
-  width: 188px;
-  height: 188px;
+  width: 184px;
+  height: 184px;
   display: block;
   object-fit: contain;
 }
@@ -130,25 +117,24 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: flex-start;
   min-width: 0;
+  padding-left: 4px;
 }
 
 .condition-line {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--ink-soft);
-  line-height: 1.15;
+  display: none;
 }
 
 .temp-line {
-  margin-top: 6px;
+  margin-top: 0;
   display: flex;
   align-items: flex-start;
-  gap: 4px;
+  gap: 5px;
 }
 
 .temp-value {
-  font-size: 84px;
+  font-size: 88px;
   font-weight: 800;
   letter-spacing: -0.08em;
   line-height: 0.9;
@@ -156,71 +142,63 @@ body {
 }
 
 .temp-unit {
-  margin-top: 10px;
-  font-size: 31px;
+  margin-top: 13px;
+  font-size: 28px;
   font-weight: 700;
   color: var(--ink-soft);
   line-height: 1;
 }
 
 .feels-line {
-  margin-top: 4px;
-  font-size: 17px;
+  margin-top: 2px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--ink-soft);
 }
 
 .range-line {
-  margin-top: 10px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--ink-soft);
-}
-
-.range-divider {
-  width: 1px;
-  height: 14px;
-  background: var(--line);
+  display: none;
 }
 
 .stats-panel {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 18px;
+  gap: 8px 16px;
   align-content: start;
+  padding-top: 2px;
 }
 
 .stat-column {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .stat-item {
   display: grid;
-  grid-template-columns: 22px minmax(0, 1fr);
-  gap: 8px;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
   align-items: center;
-  min-height: 40px;
+  min-height: 38px;
 }
 
 .stat-item img,
 .moon-phase-emoji {
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   display: block;
   object-fit: contain;
+  padding: 3px;
+  border-radius: 999px;
+  border: 1px solid var(--icon-badge-line);
+  background: linear-gradient(180deg, var(--icon-badge), var(--panel-soft));
 }
 
 .moon-phase-emoji {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 17px;
 }
 
 .stat-copy {
@@ -231,14 +209,14 @@ body {
 }
 
 .stat-label {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--ink-muted);
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--ink-soft);
   line-height: 1.1;
 }
 
 .stat-value {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 800;
   color: var(--ink);
   line-height: 1.15;
@@ -248,19 +226,29 @@ body {
 }
 
 .stat-value small {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 700;
-  color: var(--ink-muted);
+  color: var(--ink-soft);
+}
+
+.stat-item.pressure-item {
+  margin-left: -8px;
+  padding: 5px 8px;
+  border: 1px solid var(--line-soft);
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--panel-soft), var(--panel));
 }
 
 .trend-shell {
-  padding: 4px 0 2px;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line-soft);
+  padding: 7px 10px 8px;
+  border: 1.2px solid var(--line);
+  border-radius: 22px;
+  background: linear-gradient(180deg, var(--panel-soft), var(--panel));
+  box-shadow: inset 0 0 0 1px var(--line-soft);
 }
 
 .chart-shell {
-  height: 88px;
+  height: 70px;
 }
 
 .chart-shell svg {
@@ -273,44 +261,44 @@ body {
   margin-top: auto;
   display: grid;
   grid-template-columns: repeat({{ forecast_days | length if forecast_days else 1 }}, minmax(0, 1fr));
-  gap: 8px;
+  gap: 10px;
 }
 
 .forecast-card {
   min-width: 0;
-  min-height: 104px;
+  min-height: 108px;
   padding: 8px 6px 10px;
-  border-radius: 15px;
-  border: 1.5px solid var(--line);
-  background: var(--panel);
+  border-radius: 12px;
+  border: 1.2px solid var(--line);
+  background: linear-gradient(180deg, var(--panel-soft), var(--panel));
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
   gap: 4px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  box-shadow: inset 0 0 0 1px var(--line-soft);
 }
 
 .forecast-card.today {
-  background: var(--panel-strong);
-  border-color: #bfd2e6;
+  background: linear-gradient(180deg, var(--panel), var(--panel-strong));
+  border-color: var(--line);
 }
 
 .forecast-name {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 800;
   color: var(--ink);
 }
 
 .forecast-icon {
-  width: 48px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
   object-fit: contain;
   display: block;
 }
 
 .forecast-temps {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 800;
   color: var(--ink);
   line-height: 1.15;
@@ -323,10 +311,22 @@ body {
 }
 
 .forecast-extra {
+  display: none;
   font-size: 10px;
   font-weight: 700;
   color: var(--ink-muted);
   line-height: 1;
+}
+
+.refresh-note {
+  position: absolute;
+  right: 18px;
+  bottom: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ink-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .custom-overlay-layer {
@@ -407,19 +407,6 @@ body {
   <header class="header">
     <div class="title">{{ title | default(city | default('Weather')) }}</div>
     <div class="date-line">{{ current_date | default('') }}</div>
-    {% if source_name or timezone_name or show_refresh %}
-    <div class="meta-strip">
-      {% if source_name %}
-      <span class="meta-pill">{{ source_name }}</span>
-      {% endif %}
-      {% if timezone_name %}
-      <span class="meta-pill">{{ timezone_name }}</span>
-      {% endif %}
-      {% if show_refresh %}
-      <span class="meta-pill">Updated {{ refresh_time | default('—') }}</span>
-      {% endif %}
-    </div>
-    {% endif %}
   </header>
 
   <section class="current-section{% if not has_stats_panel %} no-stats{% endif %}">
@@ -438,17 +425,6 @@ body {
       {% if feels_like is defined and feels_like not in (None, '', '—') %}
       <div class="feels-line">Feels Like {{ feels_like }}&deg;</div>
       {% endif %}
-      <div class="range-line">
-        {% if temp_max_today is defined and temp_max_today not in (None, '', '—') %}
-        <span>High {{ temp_max_today }}&deg;</span>
-        {% endif %}
-        {% if temp_max_today is defined and temp_max_today not in (None, '', '—') and temp_min_today is defined and temp_min_today not in (None, '', '—') %}
-        <span class="range-divider"></span>
-        {% endif %}
-        {% if temp_min_today is defined and temp_min_today not in (None, '', '—') %}
-        <span>Low {{ temp_min_today }}&deg;</span>
-        {% endif %}
-      </div>
     </div>
 
     {% if has_stats_panel %}
@@ -464,7 +440,7 @@ body {
         </div>
         {% endif %}
 
-        {% if wind_speed is defined and wind_speed not in (None, '', '—') %}
+        {% if show_metrics and wind_speed is defined and wind_speed not in (None, '', '—') %}
         <div class="stat-item">
           {% if wind_icon_path %}<img src="{{ wind_icon_path }}" alt="">{% endif %}
           <div class="stat-copy">
@@ -473,35 +449,15 @@ body {
           </div>
         </div>
         {% endif %}
+      </div>
 
+      <div class="stat-column">
         {% if show_metrics and pressure is defined and pressure not in (None, '', '—') %}
-        <div class="stat-item">
+        <div class="stat-item pressure-item">
           {% if pressure_icon_path %}<img src="{{ pressure_icon_path }}" alt="">{% endif %}
           <div class="stat-copy">
             <span class="stat-label">Pressure</span>
             <span class="stat-value">{{ pressure }} <small>hPa</small></span>
-          </div>
-        </div>
-        {% endif %}
-
-        {% if show_metrics and visibility is defined and visibility not in (None, '', '—') %}
-        <div class="stat-item">
-          {% if visibility_icon_path %}<img src="{{ visibility_icon_path }}" alt="">{% endif %}
-          <div class="stat-copy">
-            <span class="stat-label">Visibility</span>
-            <span class="stat-value">{{ visibility }}</span>
-          </div>
-        </div>
-        {% endif %}
-      </div>
-
-      <div class="stat-column">
-        {% if show_metrics and sunset is defined and sunset not in (None, '', '—') %}
-        <div class="stat-item">
-          {% if sunset_icon_path %}<img src="{{ sunset_icon_path }}" alt="">{% endif %}
-          <div class="stat-copy">
-            <span class="stat-label">Sunset</span>
-            <span class="stat-value">{{ sunset }}</span>
           </div>
         </div>
         {% endif %}
@@ -514,19 +470,7 @@ body {
             <span class="stat-value">{{ humidity }} <small>%</small></span>
           </div>
         </div>
-        {% endif %}
-
-        {% if show_metrics and uvi is defined and uvi not in (None, '', '—') %}
-        <div class="stat-item">
-          {% if uvi_icon_path %}<img src="{{ uvi_icon_path }}" alt="">{% endif %}
-          <div class="stat-copy">
-            <span class="stat-label">UV Index</span>
-            <span class="stat-value">{{ uvi }}</span>
-          </div>
-        </div>
-        {% endif %}
-
-        {% if show_rain_metric %}
+        {% elif not show_metrics and show_rain_metric %}
         <div class="stat-item">
           {% if rain_icon_path %}<img src="{{ rain_icon_path }}" alt="">{% endif %}
           <div class="stat-copy">
@@ -534,7 +478,7 @@ body {
             <span class="stat-value">{{ rain }} <small>{{ rain_unit | default('mm') }}</small></span>
           </div>
         </div>
-        {% elif show_moon and moon_phase %}
+        {% elif not show_metrics and show_moon and moon_phase %}
         <div class="stat-item">
           {% if moon_phase_asset %}
           <img src="{{ moon_phase_asset }}" alt="">
@@ -578,6 +522,10 @@ body {
     </div>
     {% endfor %}
   </section>
+  {% endif %}
+
+  {% if show_refresh %}
+  <div class="refresh-note">Updated {{ refresh_time | default('—') }}</div>
   {% endif %}
 
   {% if custom_overlay_blocks %}

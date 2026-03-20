@@ -15,6 +15,12 @@
         let currentImageUrl = null;
         const refreshIntervalMs = 1000; // 1-second polling
         let currentPreviewMode = localStorage.getItem('e-inkpi-preview-mode') || 'image';
+        const LIVE_WATCH_STORAGE_KEYS = {
+            face: 'e-inkpi-live-face',
+            seconds: 'e-inkpi-live-seconds',
+            theme: 'e-inkpi-live-theme',
+            fallbackTheme: 'e-inkpi-theme'
+        };
 
         async function refreshImage() {
             if (currentPreviewMode !== 'image') return false;
@@ -320,6 +326,8 @@
                 statusEl.textContent = 'Checking for updates…';
                 trackedRefresh();
             }
+
+            updateActionButtonLabel();
         }
 
         async function trackedRefresh() {
@@ -384,16 +392,48 @@
         const btnUpdate = document.getElementById('btnUpdateNow');
         const toastEl = document.getElementById('updateToast');
 
+        function updateActionButtonLabel() {
+            if (!btnUpdate) return;
+            btnUpdate.textContent = currentPreviewMode === 'watch' ? 'Render Watch' : 'Update Now';
+        }
+
+        function getLiveWatchRenderPayload() {
+            const storedFace = localStorage.getItem(LIVE_WATCH_STORAGE_KEYS.face) || 'analog';
+            const storedSeconds = localStorage.getItem(LIVE_WATCH_STORAGE_KEYS.seconds);
+            const storedTheme = localStorage.getItem(LIVE_WATCH_STORAGE_KEYS.theme)
+                || localStorage.getItem(LIVE_WATCH_STORAGE_KEYS.fallbackTheme)
+                || 'light';
+
+            return {
+                face: ['analog', 'digital', 'word'].includes(storedFace) ? storedFace : 'analog',
+                seconds: storedSeconds === null ? true : storedSeconds === 'true',
+                dark: storedTheme === 'dark'
+            };
+        }
+
         async function triggerUpdateNow() {
             btnUpdate.disabled = true;
-            btnUpdate.textContent = 'Updating…';
+            btnUpdate.textContent = currentPreviewMode === 'watch' ? 'Rendering…' : 'Updating…';
             try {
-                const r = await fetch('{{ url_for("main.refresh_now") }}', { method: 'POST' });
+                const targetUrl = currentPreviewMode === 'watch'
+                    ? '{{ url_for("main.render_live_watch") }}'
+                    : '{{ url_for("main.refresh_now") }}';
+                const requestOptions = currentPreviewMode === 'watch'
+                    ? {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(getLiveWatchRenderPayload())
+                    }
+                    : { method: 'POST' };
+
+                const r = await fetch(targetUrl, requestOptions);
                 const data = await r.json();
                 if (r.ok) {
-                    statusEl.textContent = 'Updated ' + new Date().toLocaleTimeString();
+                    const updatedAt = data.updated_at_display || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const successLabel = currentPreviewMode === 'watch' ? 'Watch rendered' : 'Screen updated';
+                    statusEl.textContent = `${successLabel} at ${updatedAt}`;
                     toastEl.classList.remove('error');
-                    toastEl.textContent = 'Updated!';
+                    toastEl.textContent = `${successLabel} at ${updatedAt}`;
                     toastEl.classList.add('visible');
                     setTimeout(() => toastEl.classList.remove('visible'), 2500);
                     // Re-fetch image immediately
@@ -416,7 +456,7 @@
                 setTimeout(() => { toastEl.classList.remove('visible', 'error'); }, 4000);
             } finally {
                 btnUpdate.disabled = false;
-                btnUpdate.textContent = 'Update Now';
+                updateActionButtonLabel();
             }
         }
 

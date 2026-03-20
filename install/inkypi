@@ -15,8 +15,8 @@ shift || true
 usage() {
     echo ""
     echo "Usage:"
-    echo "  e-inkpi run"
-    echo "  e-inkpi plugin <subcommand> [args]"
+    echo "  inkypi run"
+    echo "  inkypi plugin <subcommand> [args]"
     echo ""
 }
 
@@ -46,4 +46,3 @@ case "$command" in
         exit 1
         ;;
 esac
-

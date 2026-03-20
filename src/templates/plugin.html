@@ -33,6 +33,15 @@
 
         let uploadedFiles = {};
 
+        function buildScreenUpdateMessage(result) {
+            const updatedAt = result && result.updated_at_display;
+            const timezone = result && result.updated_timezone;
+            if (updatedAt) {
+                return `Screen updated at ${updatedAt}${timezone ? ` (${timezone})` : ''}.`;
+            }
+            return `Success! ${(result && result.message) || 'Display updated'}`;
+        }
+
         // Initialize refresh settings managers
         let editRefreshManager = null;
         {% if plugin_instance %}
@@ -103,7 +112,10 @@
                 const result = await response.json();
                 // Handle the response
                 if (response.ok) {
-                    showResponseModal('success', `Success! ${result.message}`);
+                    const successMessage = action === 'update_now'
+                        ? buildScreenUpdateMessage(result)
+                        : `Success! ${result.message}`;
+                    showResponseModal('success', successMessage);
                 } else {
                     showResponseModal('failure', `Error!  ${result.error}`);
                 }
@@ -125,7 +137,7 @@
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('An error occurred while processing your request.');
+                showResponseModal('failure', 'An error occurred while processing your request.');
             } finally {
                 // Hide loading indicator after the action is complete
                 loadingIndicator.style.display = 'none';

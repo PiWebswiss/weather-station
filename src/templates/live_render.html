@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ config.name }} Watch Render</title>
+<style>
+:root {
+  --bg: {% if dark %}#1f2320{% else %}#eef0ea{% endif %};
+  --bg-accent: {% if dark %}rgba(71, 148, 140, 0.16){% else %}rgba(56, 120, 113, 0.12){% endif %};
+  --card: {% if dark %}#17191c{% else %}#fbfaf7{% endif %};
+  --card-edge: {% if dark %}rgba(255,255,255,0.08){% else %}rgba(64, 67, 74, 0.12){% endif %};
+  --face: {% if dark %}#f3f3f6{% else %}#1c1d20{% endif %};
+  --subtle: {% if dark %}rgba(255,255,255,0.12){% else %}rgba(28,29,32,0.10){% endif %};
+  --mid: {% if dark %}rgba(255,255,255,0.26){% else %}rgba(28,29,32,0.22){% endif %};
+  --accent: #2d6962;
+  --accent-2: #d99a61;
+  --text-soft: {% if dark %}#b4bbb8{% else %}#6f746f{% endif %};
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  width: {{ width }}px;
+  height: {{ height }}px;
+  overflow: hidden;
+  background:
+    radial-gradient(420px 280px at 18% 8%, var(--bg-accent), transparent 70%),
+    radial-gradient(360px 260px at 84% 10%, rgba(217, 154, 97, 0.11), transparent 66%),
+    linear-gradient(180deg, var(--bg), {% if dark %}#171a18{% else %}#e7eae4{% endif %});
+  font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.render-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px;
+}
+
+.render-frame {
+  position: relative;
+  width: min(100%, 760px);
+  height: min(100%, 424px);
+  border-radius: 34px;
+  border: 1px solid var(--card-edge);
+  background:
+    linear-gradient(180deg, {% if dark %}rgba(34,34,39,0.96){% else %}rgba(255,255,255,0.84){% endif %}, {% if dark %}rgba(27,28,31,0.90){% else %}rgba(248,248,245,0.76){% endif %}),
+    linear-gradient(180deg, rgba(255,255,255,0.10), transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.07),
+    0 28px 48px rgba(0,0,0,0.16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.watch-aura {
+  position: absolute;
+  width: 360px;
+  height: 360px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(45, 105, 98, 0.22), transparent 52%),
+    radial-gradient(circle at 50% 50%, rgba(217, 154, 97, 0.16), transparent 70%);
+  filter: blur(14px);
+  opacity: 0.9;
+}
+
+.watch-card {
+  position: relative;
+  width: min(100%, 420px);
+  height: min(100%, 360px);
+  border-radius: 30px;
+  border: 1px solid var(--card-edge);
+  background:
+    linear-gradient(180deg, {% if dark %}rgba(22,23,27,0.96){% else %}rgba(255,255,255,0.86){% endif %}, {% if dark %}rgba(20,20,23,0.88){% else %}rgba(250,250,247,0.78){% endif %});
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  overflow: hidden;
+}
+
+#clockCanvas {
+  display: block;
+}
+
+.digital-panel,
+.word-panel {
+  width: 100%;
+  text-align: center;
+}
+
+.digital-panel {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.digital-time {
+  font-size: 102px;
+  line-height: 0.92;
+  letter-spacing: -0.06em;
+  color: var(--face);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.digital-date {
+  color: var(--text-soft);
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.digital-zone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(45, 105, 98, 0.18);
+  color: {% if dark %}#cde8e4{% else %}#2d6962{% endif %};
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.word-panel {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+}
+
+.word-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  width: 100%;
+  max-width: 360px;
+}
+
+.word-row {
+  display: grid;
+  grid-template-columns: repeat(14, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.word-letter {
+  text-align: center;
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 700;
+  color: var(--face);
+  opacity: 0.14;
+}
+
+.word-letter.lit {
+  opacity: 1;
+  color: var(--accent-2);
+}
+
+.word-meta {
+  color: var(--text-soft);
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.analog-mode #clockCanvas {
+  display: block;
+}
+
+.analog-mode .digital-panel,
+.analog-mode .word-panel {
+  display: none;
+}
+
+.digital-mode #clockCanvas,
+.digital-mode .word-panel {
+  display: none;
+}
+
+.digital-mode .digital-panel {
+  display: flex;
+}
+
+.word-mode #clockCanvas,
+.word-mode .digital-panel {
+  display: none;
+}
+
+.word-mode .word-panel {
+  display: flex;
+}
+</style>
+</head>
+<body>
+<div class="render-shell">
+  <div class="render-frame">
+    <div class="watch-aura"></div>
+    <div class="watch-card {% if face == 'digital' %}digital-mode{% elif face == 'word' %}word-mode{% else %}analog-mode{% endif %}" id="watchCard">
+      <canvas id="clockCanvas" width="320" height="320" aria-hidden="{{ 'false' if face == 'analog' else 'true' }}"></canvas>
+      <div class="digital-panel" aria-hidden="{{ 'false' if face == 'digital' else 'true' }}">
+        <div class="digital-time" id="digitalTime">00:00</div>
+        <div class="digital-date" id="digitalDate">Loading date…</div>
+        <div class="digital-zone">{{ render_clock.timezone or (config.timezone or "UTC") }}</div>
+      </div>
+      <div class="word-panel" aria-hidden="{{ 'false' if face == 'word' else 'true' }}">
+        <div class="word-grid" id="wordGrid"></div>
+        <div class="word-meta" id="wordMeta">Loading date…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const FACE = {{ face | tojson }};
+const SHOW_SECONDS = {{ show_seconds | tojson }};
+const CLOCK_SNAPSHOT = {{ render_clock | tojson }};
+const WORD_GRID = [
+  ['I', 'T', '·', 'I', 'S', '·', 'A', '·', 'S', 'A', 'M', 'P', 'M'],
+  ['A', '·', 'Q', 'U', 'A', 'R', 'T', 'E', 'R', '·', 'D', 'C', '·'],
+  ['T', 'W', 'E', 'N', 'T', 'Y', '·', 'F', 'I', 'V', 'E', '·', 'X'],
+  ['H', 'A', 'L', 'F', '·', 'S', 'T', 'E', 'N', '·', 'F', '·', 'T', 'O'],
+  ['P', 'A', 'S', 'T', '·', 'E', 'R', 'U', 'N', 'I', 'N', 'E', '·'],
+  ['O', 'N', 'E', '·', 'S', 'I', 'X', '·', 'T', 'H', 'R', 'E', 'E'],
+  ['F', 'O', 'U', 'R', '·', 'F', 'I', 'V', 'E', '·', 'T', 'W', 'O'],
+  ['E', 'I', 'G', 'H', 'T', '·', 'E', 'L', 'E', 'V', 'E', 'N', '·'],
+  ['S', 'E', 'V', 'E', 'N', '·', 'T', 'W', 'E', 'L', 'V', 'E', '·'],
+  ['T', 'E', 'N', '·', 'S', 'E', '·', 'O', 'C', 'L', 'O', 'C', 'K'],
+];
+
+function getClockParts() {
+  return {
+    hour: Number(CLOCK_SNAPSHOT.hour || 0),
+    minute: Number(CLOCK_SNAPSHOT.minute || 0),
+    second: Number(CLOCK_SNAPSHOT.second || 0),
+    weekday: CLOCK_SNAPSHOT.weekday || '',
+    day: Number(CLOCK_SNAPSHOT.day || 0),
+    month: CLOCK_SNAPSHOT.month || '',
+    year: Number(CLOCK_SNAPSHOT.year || 0)
+  };
+}
+
+function pad(value) {
+  return String(value).padStart(2, '0');
+}
+
+function buildWordGrid() {
+  const gridEl = document.getElementById('wordGrid');
+  WORD_GRID.forEach((row, rowIndex) => {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'word-row';
+    row.forEach((letter, colIndex) => {
+      const cell = document.createElement('span');
+      cell.className = 'word-letter';
+      cell.dataset.key = `${rowIndex},${colIndex}`;
+      cell.textContent = letter === '·' ? '' : letter;
+      rowEl.appendChild(cell);
+    });
+    gridEl.appendChild(rowEl);
+  });
+}
+
+function getWordPositions(hour, minute) {
+  const positions = [[0, 0], [0, 1], [0, 3], [0, 4]];
+  const minuteBucket = minute > 30 ? 60 - minute : minute;
+
+  if (minuteBucket >= 5) positions.push(...[[2, 7], [2, 8], [2, 9], [2, 10]]);
+  if (minuteBucket >= 10) positions.push(...[[3, 5], [3, 6], [3, 7]]);
+  if (minuteBucket >= 15 && minuteBucket < 20) positions.push(...[[1, 2], [1, 3], [1, 4], [1, 5], [1, 6], [1, 7], [1, 8]]);
+  if (minuteBucket >= 20 && minuteBucket < 25) positions.push(...[[2, 0], [2, 1], [2, 2], [2, 3], [2, 4], [2, 5]]);
+  if (minuteBucket >= 25 && minuteBucket < 30) positions.push(...[[2, 0], [2, 1], [2, 2], [2, 3], [2, 4], [2, 5], [2, 7], [2, 8], [2, 9], [2, 10]]);
+  if (minuteBucket >= 30) positions.push(...[[3, 0], [3, 1], [3, 2], [3, 3]]);
+
+  if (minute >= 5 && minute < 35) positions.push(...[[4, 0], [4, 1], [4, 2], [4, 3]]);
+  else if (minute >= 35 && minute < 58) positions.push(...[[3, 12], [3, 13]]);
+
+  const hourIndex = minute >= 35 ? hour % 12 : (hour + 11) % 12;
+  const hourRows = [
+    [[5, 0], [5, 1], [5, 2]],
+    [[6, 10], [6, 11], [6, 12]],
+    [[5, 8], [5, 9], [5, 10], [5, 11], [5, 12]],
+    [[6, 0], [6, 1], [6, 2], [6, 3]],
+    [[6, 5], [6, 6], [6, 7], [6, 8]],
+    [[5, 4], [5, 5], [5, 6]],
+    [[8, 0], [8, 1], [8, 2], [8, 3], [8, 4]],
+    [[7, 0], [7, 1], [7, 2], [7, 3], [7, 4]],
+    [[4, 8], [4, 9], [4, 10], [4, 11]],
+    [[9, 0], [9, 1], [9, 2]],
+    [[7, 6], [7, 7], [7, 8], [7, 9], [7, 10], [7, 11]],
+    [[8, 6], [8, 7], [8, 8], [8, 9], [8, 10], [8, 11], [8, 12]]
+  ];
+
+  positions.push(...(hourRows[hourIndex] || []));
+  if (minute < 3 || minute > 57) positions.push(...[[9, 7], [9, 8], [9, 9], [9, 10], [9, 11], [9, 12]]);
+  return positions;
+}
+
+function drawWord(parts) {
+  const litSet = new Set(getWordPositions(parts.hour, parts.minute).map(([row, col]) => `${row},${col}`));
+  document.querySelectorAll('.word-letter').forEach((letter) => {
+    letter.classList.toggle('lit', litSet.has(letter.dataset.key));
+  });
+  document.getElementById('wordMeta').textContent = `${pad(parts.hour)}:${pad(parts.minute)} · ${parts.weekday}, ${parts.day} ${parts.month}`;
+}
+
+function drawDigital(parts) {
+  const timeText = SHOW_SECONDS
+    ? `${pad(parts.hour)}:${pad(parts.minute)}:${pad(parts.second)}`
+    : `${pad(parts.hour)}:${pad(parts.minute)}`;
+  document.getElementById('digitalTime').textContent = timeText;
+  document.getElementById('digitalDate').textContent = `${parts.weekday}, ${parts.day} ${parts.month} ${parts.year}`;
+}
+
+function drawAnalog(parts) {
+  const canvas = document.getElementById('clockCanvas');
+  const ctx = canvas.getContext('2d');
+  const width = canvas.width;
+  const height = canvas.height;
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const radius = Math.min(width, height) * 0.44;
+  const styles = getComputedStyle(document.documentElement);
+  const faceColor = styles.getPropertyValue('--face').trim();
+  const subtle = styles.getPropertyValue('--subtle').trim();
+  const mid = styles.getPropertyValue('--mid').trim();
+  const centerFill = styles.getPropertyValue('--accent-2').trim();
+  const sweep = styles.getPropertyValue('--accent').trim();
+
+  const secondAngle = ((parts.second / 60) * Math.PI * 2) - (Math.PI / 2);
+  const minuteAngle = (((parts.minute + (parts.second / 60)) / 60) * Math.PI * 2) - (Math.PI / 2);
+  const hourAngle = ((((parts.hour % 12) + (parts.minute / 60)) / 12) * Math.PI * 2) - (Math.PI / 2);
+
+  ctx.clearRect(0, 0, width, height);
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+  ctx.fillStyle = styles.getPropertyValue('--card').trim();
+  ctx.fill();
+
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+  ctx.strokeStyle = subtle;
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  for (let marker = 0; marker < 60; marker += 1) {
+    const angle = ((marker / 60) * Math.PI * 2) - (Math.PI / 2);
+    const isHour = marker % 5 === 0;
+    const outer = radius - 4;
+    const inner = isHour ? radius - 22 : radius - 12;
+    ctx.beginPath();
+    ctx.moveTo(centerX + (outer * Math.cos(angle)), centerY + (outer * Math.sin(angle)));
+    ctx.lineTo(centerX + (inner * Math.cos(angle)), centerY + (inner * Math.sin(angle)));
+    ctx.strokeStyle = isHour ? mid : subtle;
+    ctx.lineWidth = isHour ? 3 : 1.25;
+    ctx.stroke();
+  }
+
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, radius - 26, -Math.PI / 2, minuteAngle, minuteAngle < -Math.PI / 2);
+  ctx.strokeStyle = `${sweep}33`;
+  ctx.lineWidth = 10;
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  function drawHand(angle, length, widthValue, color, tail = 14) {
+    ctx.beginPath();
+    ctx.moveTo(centerX - (Math.cos(angle) * tail), centerY - (Math.sin(angle) * tail));
+    ctx.lineTo(centerX + (Math.cos(angle) * length), centerY + (Math.sin(angle) * length));
+    ctx.strokeStyle = color;
+    ctx.lineWidth = widthValue;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  }
+
+  drawHand(hourAngle, radius * 0.5, 8, faceColor, 12);
+  drawHand(minuteAngle, radius * 0.76, 5, faceColor, 16);
+  if (SHOW_SECONDS) drawHand(secondAngle, radius * 0.84, 2.25, centerFill, 20);
+
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, 9, 0, Math.PI * 2);
+  ctx.fillStyle = centerFill;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, 3.5, 0, Math.PI * 2);
+  ctx.fillStyle = faceColor;
+  ctx.fill();
+}
+
+const parts = getClockParts();
+buildWordGrid();
+if (FACE === 'digital') drawDigital(parts);
+else if (FACE === 'word') drawWord(parts);
+else drawAnalog(parts);
+</script>
+</body>
+</html>
