@@ -581,3 +581,14 @@ Transformer le dashboard d'un simple aperçu PNG en une interface plus vivante, 
   - `current_image.png` vérifié :
     - sombre : noir réel
     - clair : blanc réel + cartes gris clair
+
+### Nettoyage visuel de la pression météo
+- Ajustement demandé :
+  - retirer la ligne / forme spéciale autour de `Pressure`
+- Correctif appliqué :
+  - suppression du style dédié `.stat-item.pressure-item` dans `src/plugins/weather/render/weather.html`
+  - la métrique pression utilise désormais exactement le même rendu que les autres métriques
+- Vérifications :
+  - `git diff --check` ciblé : OK
+  - `inkypi.service` : `active`
+  - `/plugin/weather` : `200`

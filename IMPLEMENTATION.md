@@ -1472,6 +1472,10 @@ Vérification réelle après redémarrage :
   - mode sombre : fond et cartes à `(0, 0, 0)`
   - mode clair : fond à `(255, 255, 255)`, cartes en gris clair lisible
 
+Finition météo complémentaire :
+- suppression du contour / bloc spécial autour de la métrique `Pressure` dans `src/plugins/weather/render/weather.html`
+- la pression reprend maintenant le même style visuel que les autres métriques
+
 Limite connue de la session :
 - impossible de faire un smoke test complet d'import **de tous les plugins** dans cet environnement shell nu, car l'interpréteur Python disponible ici n'a pas toutes les dépendances du projet (`psutil`, `pytz`, etc.). Sur le Raspberry avec l'environnement projet installé, ces imports sont pris en charge normalement.
 
