@@ -18,7 +18,8 @@
       "Bash(git -C \"C:/Users/louis/kDrive/CFC28/Semestre 3 - 4/informatique/217 Concevoir, planifier et mettre en place un service pour l''''IoE/Projet/weather-station\" ls-files)",
       "Bash(pip show:*)",
       "Bash(python -c \"import inkypi; print\\(inkypi.__file__\\)\")",
-      "Bash(powershell.exe -Command \":*)"
+      "Bash(powershell.exe -Command \":*)",
+      "Bash(file /home/pi/weather-station/src/static/scripts/*.js)"
     ],
     "additionalDirectories": [
       "\\tmp",
