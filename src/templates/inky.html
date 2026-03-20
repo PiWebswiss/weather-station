@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ config.name }} — Dashboard</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='styles/main.css') }}">
+    <script>
+        (function() {
+            const stored = localStorage.getItem('inkypi-theme');
+            if (stored === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+        })();
+
+        let lastModified = null;
+        const refreshIntervalMs = 3 * 1000;
+
+        async function refreshImage() {
+            const img = document.querySelector('.preview-img');
+            if (!img) return;
+            try {
+                const headers = {};
+                if (lastModified) headers['If-Modified-Since'] = lastModified;
+                const response = await fetch('{{ url_for("main.get_current_image") }}', { headers });
+                if (response.status === 304) return;
+                if (!response.ok) return;
+                const blob = await response.blob();
+                img.src = URL.createObjectURL(blob);
+                lastModified = response.headers.get('Last-Modified');
+            } catch (e) { console.error('Image refresh error:', e); }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshImage();
+            setInterval(refreshImage, refreshIntervalMs);
+        });
+    </script>
+    <script src="{{ url_for('static', filename='scripts/image_modal.js') }}"></script>
+</head>
+<body class="wp-admin">
+    <script src="{{ url_for('static', filename='scripts/dark_mode.js') }}"></script>
+
+    <!-- ── Top admin bar ──────────────────────────────────────────────────── -->
+    <div class="adminbar">
+        <div class="adminbar-brand">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+            <span>{{ config.name }}</span>
+        </div>
+        <div class="adminbar-links">
+            <a href="{{ url_for('settings.settings_page') }}" class="adminbar-link">Settings</a>
+            <a href="{{ url_for('playlist.playlists') }}" class="adminbar-link">Playlists</a>
+            <a href="{{ url_for('apikeys.apikeys_page') }}" class="adminbar-link">API Keys</a>
+            <button class="adminbar-link dark-mode-toggle" title="Toggle Dark Mode" aria-label="Toggle Dark Mode"></button>
+        </div>
+    </div>
+
+    <!-- ── Main layout: sidebar + content ─────────────────────────────────── -->
+    <div class="wp-layout">
+
+        <!-- Sidebar -->
+        <aside class="wp-sidebar">
+            <nav class="sidebar-nav">
+                <div class="sidebar-section-label">Display</div>
+                <a href="/" class="sidebar-link active">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+                    Dashboard
+                </a>
+                <a href="{{ url_for('settings.settings_page') }}" class="sidebar-link">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+                    Device Settings
+                </a>
+
+                <div class="sidebar-section-label">Content</div>
+                <a href="{{ url_for('playlist.playlists') }}" class="sidebar-link">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+                    Playlists
+                </a>
+
+                <div class="sidebar-section-label">Integrations</div>
+                <a href="{{ url_for('apikeys.apikeys_page') }}" class="sidebar-link">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+                    API Keys
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main content -->
+        <main class="wp-main">
+
+            <!-- Live preview card -->
+            <div class="wp-card preview-card">
+                <div class="wp-card-header">
+                    <div class="wp-card-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/></svg>
+                        Live Preview
+                    </div>
+                    <div class="preview-status">
+                        <span class="status-dot"></span>
+                        <span id="previewStatus">Watching for changes…</span>
+                    </div>
+                </div>
+                <div class="image-container">
+                    <img class="preview-img" src="{{ url_for('static', filename='images/current_image.png') }}" alt="Current display output">
+                </div>
+            </div>
+
+            <!-- Plugins card -->
+            <div class="wp-card">
+                <div class="wp-card-header">
+                    <div class="wp-card-title">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><path d="M7 7h.01"/></svg>
+                        Plugins
+                    </div>
+                    <div class="plugins-controls">
+                        <button class="wp-btn-ghost sort-toggle" id="sortToggle">Reorder</button>
+                        <button class="wp-btn-ghost view-toggle" id="viewToggle">List view</button>
+                    </div>
+                </div>
+
+                <div class="sort-hint" id="sortHint">Drag plugins to reorder, then click Save.</div>
+
+                <div class="plugins-container" id="pluginsContainer">
+                    {% for plugin in plugins %}
+                    <a href="{{ url_for('plugin.plugin_page', plugin_id=plugin.id) }}"
+                       class="plugin-item"
+                       data-plugin-id="{{ plugin.id }}"
+                       title="{{ plugin.display_name }}"
+                       draggable="false">
+                        <div class="plugin-icon-wrap">
+                            <img src="{{ url_for('plugin.image', plugin_id=plugin.id, filename='icon.png') }}"
+                                 alt="{{ plugin.display_name }}"
+                                 class="plugin-icon-img">
+                        </div>
+                        <span class="plugin-name">{{ plugin.display_name }}</span>
+                        <svg class="plugin-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <script>
+        // ── Live preview status ────────────────────────────────────────────
+        const statusEl = document.getElementById('previewStatus');
+        let prevSrc = null;
+        const origRefreshImage = refreshImage;
+        async function trackedRefresh() {
+            const img = document.querySelector('.preview-img');
+            const before = img ? img.src : null;
+            await origRefreshImage();
+            const after = img ? img.src : null;
+            if (after && after !== before) {
+                statusEl.textContent = 'Updated ' + new Date().toLocaleTimeString();
+            }
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            setInterval(trackedRefresh, 3000);
+        });
+
+        // ── View toggle (grid / list) ──────────────────────────────────────
+        const viewToggle = document.getElementById('viewToggle');
+        const pluginsContainer = document.getElementById('pluginsContainer');
+        let currentView = localStorage.getItem('inkypi-plugins-view') || 'grid';
+
+        function updateView() {
+            if (currentView === 'list') {
+                pluginsContainer.classList.add('list-view');
+                viewToggle.textContent = 'Grid view';
+            } else {
+                pluginsContainer.classList.remove('list-view');
+                viewToggle.textContent = 'List view';
+            }
+        }
+        viewToggle.addEventListener('click', () => {
+            currentView = currentView === 'grid' ? 'list' : 'grid';
+            localStorage.setItem('inkypi-plugins-view', currentView);
+            updateView();
+        });
+        updateView();
+
+        // ── Sort / drag-and-drop ───────────────────────────────────────────
+        const sortToggle = document.getElementById('sortToggle');
+        const sortHint = document.getElementById('sortHint');
+        let isSorting = false, draggedItem = null;
+
+        function enableSorting() {
+            isSorting = true;
+            sortToggle.classList.add('active');
+            sortToggle.textContent = 'Save order';
+            sortHint.classList.add('visible');
+            pluginsContainer.classList.add('sorting');
+            document.querySelectorAll('.plugin-item').forEach(item => {
+                item.draggable = true;
+                item.addEventListener('dragstart', handleDragStart);
+                item.addEventListener('dragend', handleDragEnd);
+                item.addEventListener('dragover', handleDragOver);
+                item.addEventListener('dragleave', handleDragLeave);
+                item.addEventListener('drop', handleDrop);
+                item.addEventListener('click', preventClick);
+            });
+        }
+
+        function disableSorting() {
+            isSorting = false;
+            sortToggle.classList.remove('active');
+            sortToggle.textContent = 'Reorder';
+            sortHint.classList.remove('visible');
+            pluginsContainer.classList.remove('sorting');
+            document.querySelectorAll('.plugin-item').forEach(item => {
+                item.draggable = false;
+                item.removeEventListener('dragstart', handleDragStart);
+                item.removeEventListener('dragend', handleDragEnd);
+                item.removeEventListener('dragover', handleDragOver);
+                item.removeEventListener('dragleave', handleDragLeave);
+                item.removeEventListener('drop', handleDrop);
+                item.removeEventListener('click', preventClick);
+            });
+            savePluginOrder();
+        }
+
+        function preventClick(e) { if (isSorting) e.preventDefault(); }
+        function handleDragStart(e) { draggedItem = this; this.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; }
+        function handleDragEnd() { this.classList.remove('dragging'); document.querySelectorAll('.plugin-item').forEach(i => i.classList.remove('drag-over')); }
+        function handleDragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (this !== draggedItem) this.classList.add('drag-over'); }
+        function handleDragLeave() { this.classList.remove('drag-over'); }
+        function handleDrop(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+            if (this !== draggedItem) {
+                const items = Array.from(pluginsContainer.children);
+                if (items.indexOf(draggedItem) < items.indexOf(this)) this.parentNode.insertBefore(draggedItem, this.nextSibling);
+                else this.parentNode.insertBefore(draggedItem, this);
+            }
+        }
+
+        async function savePluginOrder() {
+            const order = Array.from(pluginsContainer.children).map(i => i.dataset.pluginId);
+            try {
+                const r = await fetch('{{ url_for("main.save_plugin_order") }}', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ order })
+                });
+                if (!r.ok) console.error('Failed to save plugin order');
+            } catch(e) { console.error(e); }
+        }
+
+        sortToggle.addEventListener('click', () => isSorting ? disableSorting() : enableSorting());
+    </script>
+</body>
+</html>
